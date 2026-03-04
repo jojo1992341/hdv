@@ -34,13 +34,60 @@ source .venv/bin/activate
 .venv\Scripts\activate.bat
 ```
 
-### 3) Installer les dépendances
+### 3) Installer `pytesseract` et les dépendances Python
 
 ```bash
 pip install -r requirements.txt
 ```
 
-⚠️ `pytesseract` nécessite aussi le binaire Tesseract installé sur la machine (`tesseract --version`).
+> `pytesseract` (package Python) est installé par `requirements.txt`.
+
+### 4) Installer le binaire **Tesseract OCR** (obligatoire)
+
+`pytesseract` est un wrapper Python : il faut aussi installer l’exécutable système `tesseract`.
+
+**Vérifier l'installation**
+
+```bash
+tesseract --version
+```
+
+#### Ubuntu / Debian
+
+```bash
+sudo apt update
+sudo apt install -y tesseract-ocr tesseract-ocr-fra
+```
+
+#### Fedora
+
+```bash
+sudo dnf install -y tesseract tesseract-langpack-fra
+```
+
+#### Arch Linux
+
+```bash
+sudo pacman -S tesseract tesseract-data-fra
+```
+
+#### macOS (Homebrew)
+
+```bash
+brew install tesseract
+```
+
+> Sur macOS, si le français n’est pas présent, installer aussi les données de langue via les packs Homebrew disponibles.
+
+#### Windows
+
+- Installer **Tesseract OCR** (ex: UB Mannheim build).
+- Ajouter le dossier d’installation (contenant `tesseract.exe`) au `PATH`.
+- Redémarrer le terminal puis vérifier :
+
+```bat
+tesseract --version
+```
 
 ## Lancer
 
