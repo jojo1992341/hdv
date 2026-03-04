@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analyseur de Flip HDV</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 900px; line-height: 1.5; }
+      .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+      .error { background: #fdecea; border-color: #f5c2c7; color: #842029; }
+      .ok { background: #f0fdf4; border-color: #86efac; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border-bottom: 1px solid #eee; padding: 0.5rem; text-align: right; }
+      th:first-child, td:first-child { text-align: left; }
+      .profitable { color: #166534; font-weight: bold; }
+      .not-profitable { color: #991b1b; font-weight: bold; }
+      pre { white-space: pre-wrap; background: #fafafa; border: 1px solid #eee; padding: 0.75rem; border-radius: 6px; }
+    </style>
+  </head>
+  <body>
+    <h1>Analyseur de rentabilité HDV (Dofus)</h1>
+    <p>Upload le graphique de vente + la fenêtre des prix HDV. L'outil extrait les données avec OCR et propose un prix de revente cible.</p>
+
+    <form method="post" enctype="multipart/form-data" class="card">
+      <label>Image du graphique de vente</label><br />
+      <input type="file" name="graph_image" accept="image/*" required /><br /><br />
+
+      <label>Image des prix HDV</label><br />
+      <input type="file" name="hdv_image" accept="image/*" required /><br /><br />
+
+      <label>Frais de mise en vente (%)</label><br />
+      <input type="number" name="fee_rate" value="2" step="0.1" min="0" max="30" />
+      <br /><br />
+
+      <button type="submit">Analyser</button>
+    </form>
+
+    {% if error %}
+      <div class="card error">
+        <strong>Erreur :</strong> {{ error }}
+      </div>
+    {% endif %}
+
+    {% if result %}
+      <div class="card ok">
+        <h2>Résumé</h2>
+        <p><strong>Prix médian :</strong> {{ result.metrics.median_price }} k</p>
+        <p><strong>Prix moyen :</strong> {{ result.metrics.average_price }} k</p>
+        <p><strong>Prix cible de revente (unité) :</strong> {{ '%.2f'|format(result.target_sell_unit) }} k</p>
+        <p><strong>Prix net (après frais) :</strong> {{ '%.2f'|format(result.target_sell_unit * (1 - result.fee_rate)) }} k</p>
+
+        {% if result.best_lot %}
+          <p class="profitable">✅ Lot recommandé : x{{ result.best_lot.quantity }} (profit estimé {{ '%.0f'|format(result.best_lot.expected_profit_total) }} k, ROI {{ '%.2f'|format(result.best_lot.roi_pct) }}%)</p>
+        {% else %}
+          <p class="not-profitable">❌ Aucune offre détectée n'est rentable avec ces hypothèses.</p>
+        {% endif %}
+      </div>
+
+      <div class="card">
+        <h2>Détail par lot</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Lot</th>
+              <th>Achat total</th>
+              <th>Achat/unité</th>
+              <th>Net/unité</th>
+              <th>Profit total</th>
+              <th>ROI</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for lot in result.lot_analyses %}
+            <tr>
+              <td>x{{ lot.quantity }}</td>
+              <td>{{ lot.buy_total }}</td>
+              <td>{{ '%.2f'|format(lot.buy_unit) }}</td>
+              <td>{{ '%.2f'|format(lot.net_unit_after_fees) }}</td>
+              <td>{{ '%.0f'|format(lot.expected_profit_total) }}</td>
+              <td>{{ '%.2f'|format(lot.roi_pct) }}%</td>
+              <td class="{{ 'profitable' if lot.profitable else 'not-profitable' }}">{{ 'Rentable' if lot.profitable else 'Non rentable' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <details class="card">
+        <summary>OCR brut (debug)</summary>
+        <h3>Graphique</h3>
+        <pre>{{ graph_ocr }}</pre>
+        <h3>HDV</h3>
+        <pre>{{ hdv_ocr }}</pre>
+      </details>
+    {% endif %}
+  </body>
+</html>
