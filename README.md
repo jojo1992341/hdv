@@ -8,9 +8,35 @@ puis calcule si l'achat/revente est rentable et propose un prix de revente cible
 
 ## Installation
 
+### 1) Créer l'environnement virtuel
+
 ```bash
 python -m venv .venv
+```
+
+### 2) Activer l'environnement virtuel
+
+**Linux / macOS (bash/zsh)**
+
+```bash
 source .venv/bin/activate
+```
+
+**Windows (PowerShell)**
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+**Windows (Invite de commandes / cmd.exe)**
+
+```bat
+.venv\Scripts\activate.bat
+```
+
+### 3) Installer les dépendances
+
+```bash
 pip install -r requirements.txt
 ```
 
@@ -33,5 +59,5 @@ Puis ouvrir `http://localhost:8000`.
 ## Tests
 
 ```bash
-python -m unittest -v
+python -m unittest discover -s tests -v
 ```
