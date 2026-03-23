@@ -1,0 +1,134 @@
+/* ============================================================
+   DOFUS RUNES — ARCANE FORGE — DESIGN TOKENS
+   Source unique de vérité pour toute la charte graphique.
+   Chargé en premier par index.html ET admin.html.
+
+   Ce fichier remplace les blocs :root dupliqués qui existaient
+   dans style.css et admin.css. Toute modification de couleur,
+   typographie ou géométrie doit se faire ICI UNIQUEMENT.
+   ============================================================ */
+
+/* ── POLICES ────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+
+/* ── VARIABLES GLOBALES ─────────────────────────────────────── */
+:root {
+
+  /* ── Fonds abyssaux ──────────────────────────────────────── */
+  --bg:          #020509;
+  --bg-surface:  #060d15;
+  --bg-raised:   #091420;
+  --bg-overlay:  #0e1f32;
+  --bg-input:    #040a12;
+  --bg-card:     #07111c;
+
+  /* ── Textes ──────────────────────────────────────────────── */
+  --tx:          #b8cfe8;
+  --tx-dim:      #4a6580;
+  --tx-bright:   #ddeeff;
+  --tx-faint:    #1e3350;
+
+  /* ── Ambre alchimique ────────────────────────────────────── */
+  --amber:        #f0a030;
+  --amber-hi:     #ffc060;
+  --amber-deep:   #c07010;
+  --amber-dim:    rgba(240, 160, 48, 0.10);
+  --amber-glow:   rgba(240, 160, 48, 0.22);
+  --amber-line:   rgba(240, 160, 48, 0.30);
+  --amber-strong: rgba(240, 160, 48, 0.55);
+
+  /* ── Jade cristal (succès / gain) ────────────────────────── */
+  --jade:         #00ddb8;
+  --jade-hi:      #40ffdd;
+  --jade-dim:     rgba(0, 221, 184, 0.08);
+  --jade-glow:    rgba(0, 221, 184, 0.20);
+  --jade-line:    rgba(0, 221, 184, 0.28);
+
+  /* ── Corail ardent (danger / perte) ─────────────────────── */
+  --coral:        #ff5a5a;
+  --coral-hi:     #ff8080;
+  --coral-dim:    rgba(255, 90, 90, 0.10);
+  --coral-line:   rgba(255, 90, 90, 0.30);
+
+  /* ── Azur action (interaction principale) ────────────────── */
+  --azur:         #4a9eff;
+  --azur-dim:     rgba(74, 158, 255, 0.10);
+  --azur-line:    rgba(74, 158, 255, 0.28);
+  --azur-hover:   #6eb4ff;
+
+  /* ── Bordures ────────────────────────────────────────────── */
+  --brd:          #0f1e2f;
+  --brd-hi:       #172840;
+  --brd-bright:   #254060;
+
+  /* ── Ombres ──────────────────────────────────────────────── */
+  --sh-sm:    0 2px  12px rgba(0, 0, 0, 0.60);
+  --sh-md:    0 6px  28px rgba(0, 0, 0, 0.65);
+  --sh-lg:    0 12px 56px rgba(0, 0, 0, 0.75);
+  --sh-amber: 0 0    30px rgba(240, 160, 48, 0.12);
+  --sh-jade:  0 0    30px rgba(0, 221, 184, 0.10);
+
+  /* ── Typographies ────────────────────────────────────────── */
+  --font-display: 'Cinzel', 'Palatino Linotype', Georgia, serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  --font-ui:      'Outfit', system-ui, sans-serif;
+
+  /* ── Géométrie ───────────────────────────────────────────── */
+  --r:    8px;
+  --r-sm: 4px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+
+  /* ── Alias de compatibilité (anciens noms) ───────────────── */
+  /*    Ces alias permettent aux modules JS et aux templates HTML
+        écrits avec les anciens noms de continuer à fonctionner
+        sans modification. Ne pas supprimer sans audit complet.   */
+  --primary:          var(--azur);
+  --primary-dim:      var(--azur-dim);
+  --primary-action:   var(--azur);
+  --primary-hover:    var(--azur-hover);
+
+  --sapphire:         var(--azur);
+  --sapphire-dim:     var(--azur-dim);
+  --sapphire-hover:   var(--azur-hover);
+
+  --success:          var(--jade);
+  --success-dim:      var(--jade-dim);
+  --success-color:    var(--jade);
+
+  --danger:           var(--coral);
+  --danger-dim:       var(--coral-dim);
+  --danger-color:     var(--coral);
+
+  --cyan:             var(--jade);
+  --cyan-dim:         var(--jade-dim);
+  --cyan-line:        var(--jade-line);
+
+  --panel-bg:         var(--bg-surface);
+  --bg-color:         var(--bg);
+  --input-bg:         var(--bg-input);
+  --border-color:     var(--brd-hi);
+  --text-main:        var(--tx);
+  --text-muted:       var(--tx-dim);
+  --kamas-color:      var(--amber);
+  --radius:           8px;
+}
+
+/* ── RESET ──────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html { scroll-behavior: smooth; }
+
+/* ── SCROLLBAR ──────────────────────────────────────────────── */
+::-webkit-scrollbar             { width: 4px; height: 4px; }
+::-webkit-scrollbar-track       { background: transparent; }
+::-webkit-scrollbar-thumb       { background: var(--brd-bright); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--tx-faint); }
+
+/* ── UTILITAIRES PARTAGÉS ───────────────────────────────────── */
+.hidden { display: none !important; }
+.mt-10  { margin-top: 10px; }

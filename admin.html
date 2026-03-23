@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚙ Dofus Runes — Arcane Forge · Admin</title>
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+    <!-- ==========================================
+         EN-TÊTE ET NAVIGATION PAR ONGLETS
+         ========================================== -->
+    <header class="admin-header">
+        <div class="header-title">
+            <h1>Backoffice · Gestion des Données</h1>
+            <div class="header-nav-links">
+                <a href="index.html" class="back-link">← Calculateur & Bons Plans</a>
+            </div>
+        </div>
+
+        <!--
+            Les boutons portent la classe .tab-btn et l'attribut data-target.
+            AdminNav (navigation.js, stratégie "active") gère l'activation
+            via AdminNav.init() — setupTabs() a été supprimé.
+        -->
+        <nav class="admin-tabs">
+            <button class="tab-btn active" data-target="tab-equipments">Équipements & Recettes</button>
+            <button class="tab-btn" data-target="tab-resources">Ressources & Prix</button>
+        </nav>
+    </header>
+
+    <main class="admin-main">
+
+        <!-- ==========================================
+             ONGLET : ÉQUIPEMENTS
+             ========================================== -->
+        <section id="tab-equipments" class="tab-content active">
+
+            <div class="toolbar">
+                <div class="toolbar-filters">
+                    <input type="text" id="search-equip" class="search-bar"
+                           placeholder="Rechercher un équipement...">
+                    <select id="filter-category" class="filter-select">
+                        <option value="">Toutes les catégories</option>
+                        <!-- Peuplé dynamiquement par populateCategoryFilter() -->
+                    </select>
+                </div>
+                <div class="toolbar-actions">
+                    <button class="btn btn-danger hidden" id="btn-delete-multi-equip">
+                        🗑️ Supprimer la sélection
+                    </button>
+                    <button class="btn btn-primary" id="btn-add-equip">+ Nouvel Équipement</button>
+
+                    <!--
+                        Import des prix HDV équipements.
+                        Format attendu : [{ "id": <id_itm>, "prix": <valeur> }, ...]
+                    -->
+                    <button class="btn btn-secondary" id="btn-import-equip-prices"
+                            title="Importer un fichier JSON de prix HDV équipements">
+                        📥 Importer des prix JSON
+                    </button>
+                    <input type="file" id="input-import-equip-prices"
+                           accept=".json" class="hidden">
+
+                    <button class="btn btn-success" id="btn-export-equip">
+                        💾 Sauvegarder recettes_dofus.json
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th width="40"><input type="checkbox" id="check-all-equip"></th>
+                            <th width="60">Icône</th>
+                            <th class="sortable" data-sort="nom">Nom <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="niveau" width="90">Niveau <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="categorie" width="150">Catégorie <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="ingredients" width="130">Ingrédients <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="popularity" width="140">
+                                Popularité des ressources <span class="sort-icon"></span>
+                            </th>
+                            <th width="150">Prix HDV (Kamas)</th>
+                            <th width="150">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-equipments">
+                        <!-- Peuplé dynamiquement par renderEquipmentsPage() -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination-container">
+                <div class="page-size-selector">
+                    Afficher
+                    <select id="page-size-equip" class="page-size">
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="250">250</option>
+                        <option value="500">500</option>
+                    </select>
+                    lignes
+                </div>
+                <div class="page-controls">
+                    <button class="btn btn-secondary btn-sm" id="btn-prev-equip">Précédent</button>
+                    <span id="page-info-equip" class="page-info">Page 1 sur 1</span>
+                    <button class="btn btn-secondary btn-sm" id="btn-next-equip">Suivant</button>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ==========================================
+             ONGLET : RESSOURCES
+             ========================================== -->
+        <section id="tab-resources" class="tab-content">
+
+            <div class="toolbar">
+                <div class="toolbar-filters">
+                    <input type="text" id="search-res" class="search-bar"
+                           placeholder="Rechercher une ressource...">
+                </div>
+                <div class="toolbar-actions">
+                    <button class="btn btn-danger hidden" id="btn-delete-multi-res">
+                        🗑️ Supprimer la sélection
+                    </button>
+                    <button class="btn btn-primary" id="btn-add-res">+ Nouvelle Ressource</button>
+
+                    <!--
+                        Import des prix OCR.
+                        Le bouton visible déclenche le click sur l'input file masqué.
+                        Le traitement est assuré par importPriceJson() dans admin.modals.js.
+                    -->
+                    <button class="btn btn-secondary" id="btn-import-prices"
+                            title="Importer un fichier JSON de prix OCR (Prix*.json)">
+                        📥 Importer des prix JSON
+                    </button>
+                    <input type="file" id="input-import-prices"
+                           accept=".json" class="hidden">
+
+                    <button class="btn btn-success" id="btn-export-res">
+                        💾 Sauvegarder recettes_dofus.json
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th width="40"><input type="checkbox" id="check-all-res"></th>
+                            <th width="60">Icône</th>
+                            <th width="100">ID interne</th>
+                            <th class="sortable" data-sort="nom">Nom <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="usage" width="150">
+                                Utilisée dans <span class="sort-icon"></span>
+                            </th>
+                            <th class="sortable" data-sort="taux_drop" width="130">
+                                Taux de drop <span class="sort-icon"></span>
+                            </th>
+                            <!-- 4 colonnes de prix (×1 / ×10 / ×100 / ×1000) + prix moyen importé -->
+                            <th width="110">Prix ×1</th>
+                            <th width="110">Prix ×10</th>
+                            <th width="110">Prix ×100</th>
+                            <th width="110">Prix ×1000</th>
+                            <th width="110" title="Prix moyen importé via JSON (utilisé dans l'onglet Trading)">
+                                Moy. HDV
+                            </th>
+                            <th width="150">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-resources">
+                        <!-- Peuplé dynamiquement par renderResourcesPage() -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination-container">
+                <div class="page-size-selector">
+                    Afficher
+                    <select id="page-size-res" class="page-size">
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="250">250</option>
+                        <option value="500">500</option>
+                    </select>
+                    lignes
+                </div>
+                <div class="page-controls">
+                    <button class="btn btn-secondary btn-sm" id="btn-prev-res">Précédent</button>
+                    <span id="page-info-res" class="page-info">Page 1 sur 1</span>
+                    <button class="btn btn-secondary btn-sm" id="btn-next-res">Suivant</button>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- ==========================================
+         MODALES D'ÉDITION
+         ========================================== -->
+
+    <!-- Modale : Équipement -->
+    <div id="modal-equip" class="modal hidden">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2 id="modal-equip-title">Éditer l'équipement</h2>
+                <button class="close-modal">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-equip">
+                    <input type="hidden" id="equip-original-id">
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="equip-name">Nom :</label>
+                            <input type="text" id="equip-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="equip-category">Catégorie :</label>
+                            <input type="text" id="equip-category" placeholder="ex: Épée, Chapeau..." required>
+                        </div>
+                        <div class="form-group">
+                            <label for="equip-level">Niveau :</label>
+                            <input type="number" id="equip-level" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="equip-icon">URL Icône :</label>
+                            <input type="text" id="equip-icon" required>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h3>Recette</h3>
+                    <div id="recipe-editor-container" class="recipe-editor">
+                        <!-- Lignes injectées par renderRecipeEditor() -->
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm mt-10"
+                            id="btn-add-recipe-row">+ Ajouter un ingrédient</button>
+
+                    <hr>
+
+                    <h3>Effets</h3>
+                    <p class="help-text">
+                        Cochez les caractéristiques présentes sur l'équipement et renseignez les valeurs
+                        (Minimum et Maximum). Pour une valeur fixe, mettez le même nombre dans les deux cases.
+                    </p>
+                    <div id="effects-editor-container" class="effects-grid">
+                        <!-- Cases à cocher injectées par renderEffectsEditor() -->
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary close-modal">Annuler</button>
+                <button class="btn btn-primary" id="btn-save-equip">Enregistrer les modifications</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modale : Ressource -->
+    <div id="modal-res" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-res-title">Éditer la ressource</h2>
+                <button class="close-modal">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-res">
+                    <input type="hidden" id="res-original-id">
+
+                    <div class="form-group">
+                        <label for="res-name">Nom :</label>
+                        <input type="text" id="res-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="res-icon">URL Icône (64×64) :</label>
+                        <input type="text" id="res-icon">
+                    </div>
+                    <div class="form-group">
+                        <label for="res-drop-rate">
+                            Taux de drop de base (%)
+                            <span class="help-text" style="display:inline;font-size:0.72rem;">
+                                — Nombre, <strong>CRAFT</strong>, <strong>ÉCHANGE</strong> (jetons liés),
+                                <strong>MÉTIER</strong>, <strong>SACHET</strong> ou <strong>QUÊTE</strong>
+                            </span>
+                        </label>
+                        <input type="text" id="res-drop-rate"
+                               placeholder="ex : 4.5 | CRAFT | ÉCHANGE | MÉTIER | SACHET | QUÊTE">
+                    </div>
+
+                    <hr>
+
+                    <!--
+                        4 paliers de prix en grille 2×2.
+                        Les IDs suivent la convention : res-price-{lot}
+                        Le remplissage et la lecture sont assurés par admin.modals.js.
+                    -->
+                    <h3>Prix HDV (Kamas)</h3>
+                    <p class="help-text">
+                        Renseignez le prix selon le lot d'achat. Laissez vide si non coté.
+                    </p>
+                    <div class="res-price-modal-grid">
+                        <div class="form-group">
+                            <label for="res-price-x1">Prix ×1 :</label>
+                            <input type="number" id="res-price-x1" min="0" placeholder="—">
+                        </div>
+                        <div class="form-group">
+                            <label for="res-price-x10">Prix ×10 :</label>
+                            <input type="number" id="res-price-x10" min="0" placeholder="—">
+                        </div>
+                        <div class="form-group">
+                            <label for="res-price-x100">Prix ×100 :</label>
+                            <input type="number" id="res-price-x100" min="0" placeholder="—">
+                        </div>
+                        <div class="form-group">
+                            <label for="res-price-x1000">Prix ×1000 :</label>
+                            <input type="number" id="res-price-x1000" min="0" placeholder="—">
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary close-modal">Annuler</button>
+                <button class="btn btn-primary" id="btn-save-res">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Datalist pour l'autocomplete dans l'éditeur de recette -->
+    <datalist id="resources-datalist"></datalist>
+
+    <!-- ==========================================
+         SCRIPTS — Ordre de chargement obligatoire
+         ========================================== -->
+    <script src="js/constants.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/admin.state.js"></script>
+    <script src="js/admin.filters.js"></script>
+    <script src="js/admin.render.js"></script>
+    <script src="js/admin.massActions.js"></script>
+    <script src="js/admin.modals.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/admin.js"></script>
+
+</body>
+</html>

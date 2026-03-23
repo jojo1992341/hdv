@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚗ Dofus Runes — Craft & Brisage</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/tokens.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- ==========================================
+         ÉCRAN DE CHARGEMENT
+         ========================================== -->
+    <div id="loading-screen">
+        <div class="loading-inner">
+            <div class="loading-sigil">⚗</div>
+            <h1 class="loading-title">Arcane Forge</h1>
+            <p class="loading-subtitle">Chargement des ressources...</p>
+            <div class="loading-bar-track">
+                <div class="loading-bar-fill" id="loading-bar-fill"></div>
+            </div>
+            <p class="loading-counter" id="loading-counter">0 / 0</p>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         NAVIGATION PRINCIPALE
+         ========================================== -->
+    <nav class="app-navigation">
+        <div class="nav-container">
+            <button class="nav-tab-btn active" data-target="tab-calculator">🔨 Calculateur & Brisage</button>
+            <button class="nav-tab-btn" data-target="tab-deals">📈 Bons Plans (Crafts)</button>
+            <a href="admin.html" class="nav-admin-link">⚙ Admin</a>
+            <div class="nav-separator"></div>
+            <button class="nav-tab-btn" data-target="tab-dashboard">📊 Prix</button>
+            <button class="nav-tab-btn" data-target="tab-objectif">🎯 Objectif</button>
+            <button class="nav-tab-btn" data-target="tab-dependency">🔗 Dépendances</button>
+            <button class="nav-tab-btn" data-target="tab-brisage">💎 Brisage</button>
+            <button class="nav-tab-btn" data-target="tab-historique">📈 Historique</button>
+            <button class="nav-tab-btn" data-target="tab-trading">🔁 Trading</button>
+            <button class="nav-tab-btn" data-target="tab-farming">🌾 Farming</button>
+            <button class="nav-tab-btn panier-nav-btn" data-target="tab-panier">
+                🛒 Panier
+                <span id="panier-nav-badge" class="panier-nav-badge hidden"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ==========================================
+         ONGLET 1 : CALCULATEUR & BRISAGE UNITAIRE
+         ========================================== -->
+    <div id="tab-calculator" class="app-tab active">
+
+        <header class="top-bar">
+            <div class="search-wrapper">
+                <input type="text" id="search-input" placeholder="Rechercher un objet..." autocomplete="off">
+                <div id="search-results" class="dropdown-results hidden"></div>
+            </div>
+            <div class="settings-wrapper">
+                <label class="toggle-label">
+                    <input type="checkbox" id="toggle-recursive-craft">
+                    Arbre de craft détaillé
+                </label>
+                <label for="max-craft-price" class="max-craft-label">Prix max du craft :</label>
+                <input type="number" id="max-craft-price" placeholder="Max Kama" min="0">
+            </div>
+        </header>
+
+        <main id="main-content" class="hidden">
+
+            <!-- En-tête de l'objet sélectionné -->
+            <section class="item-header">
+                <div class="item-info">
+                    <img id="item-icon" src="" alt="Icône de l'objet">
+                    <div class="item-text">
+                        <h1 id="item-name">Nom de l'objet</h1>
+                        <span id="item-level" class="level-badge">Niveau --</span>
+                    </div>
+                </div>
+
+                <div class="item-dashboard">
+                    <div class="dashboard-card hdv-card">
+                        <label for="item-hdv-price">Prix HDV (Revente)</label>
+                        <div class="input-group">
+                            <input type="number" id="item-hdv-price" value="0" min="0">
+                            <span class="kamas-text">K</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card coeff-card">
+                        <label for="item-coeff">Coefficient</label>
+                        <div class="input-group">
+                            <input type="number" id="item-coeff" value="75" min="1" max="4000">
+                            <span>%</span>
+                        </div>
+                    </div>
+
+                    <div class="dashboard-card gain-card">
+                        <span>Gain estimé (Brisage) :</span>
+                        <strong id="estimated-gain" class="kamas-text">0 K</strong>
+                    </div>
+
+                    <div class="dashboard-card threshold-card">
+                        <span>Profit (Brisage) à partir de :</span>
+                        <strong id="profit-threshold">-- %</strong>
+                    </div>
+
+                    <div class="dashboard-card calc-actions-card">
+                        <button id="calc-btn-add-to-cart" class="calc-btn-cart"
+                                title="Ajouter au panier">🛒 Panier</button>
+                        <label class="calc-hide-label" title="Ne plus afficher dans le scanner de brisage">
+                            <input type="checkbox" id="calc-hide-smash">
+                            Cacher du scanner
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section recette -->
+            <section class="recipe-section">
+                <div class="recipe-split-container">
+
+                    <div class="recipe-column">
+                        <div class="column-header">
+                            <h2>Coût du craft unitaire (<span id="total-recipe-price" class="kamas-text">0 K</span>)</h2>
+                        </div>
+                        <div id="recipe-container-single" class="recipe-grid"></div>
+                    </div>
+
+                    <div class="recipe-column">
+                        <div class="column-header multi-header">
+                            <h2>Faire plusieurs objets</h2>
+                            <input type="number" id="craft-multiplier" value="1" min="1">
+                            <h2>(<span id="total-recipe-price-multi" class="kamas-text">0 K</span>)</h2>
+                        </div>
+                        <div id="recipe-container-multi" class="recipe-grid"></div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- Tableau des runes -->
+            <section class="runes-section">
+                <div class="table-container">
+                    <table id="runes-table">
+                        <thead>
+                            <tr>
+                                <th>Rune</th>
+                                <th>Jet</th>
+                                <th>Prix Rune</th>
+                                <th>Runes (Base)</th>
+                                <th>Kamas (Base)</th>
+                                <th>Runes Focus</th>
+                                <th>Kamas Focus</th>
+                            </tr>
+                        </thead>
+                        <tbody id="runes-tbody"></tbody>
+                    </table>
+                </div>
+                <div class="table-footer">
+                    <span>Total kamas sans focus :</span>
+                    <strong id="total-base-kamas" class="kamas-text">0 K</strong>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- ─────────────────────────────────────────────────
+             SCANNER DE BRISAGE — Top 50 items rentables
+             ───────────────────────────────────────────────── -->
+        <section class="smash-scanner-section">
+            <div class="smash-scanner-header">
+                <div>
+                    <h3 class="smash-scanner-title">💥 Scanner de Brisage</h3>
+                    <p class="smash-scanner-subtitle">
+                        Classement des items les plus rentables à briser,
+                        basé sur vos prix de runes et le coefficient entré.
+                    </p>
+                </div>
+                <div class="smash-scanner-controls">
+                    <label for="smash-scan-coeff" class="smash-coeff-label">Coefficient (%)</label>
+                    <input type="number" id="smash-scan-coeff"
+                           value="75" min="1" max="4000"
+                           class="smash-coeff-input">
+                    <div class="smash-level-filter">
+                        <label class="smash-coeff-label">Niv.</label>
+                        <input type="number" id="smash-level-min" class="smash-coeff-input"
+                               min="1" max="230" placeholder="min" title="Niveau minimum">
+                        <span style="color: var(--tx-faint);">—</span>
+                        <input type="number" id="smash-level-max" class="smash-coeff-input"
+                               min="1" max="230" placeholder="max" title="Niveau maximum">
+                    </div>
+                    <div class="smash-checkboxes">
+                        <label class="smash-checkbox-label" title="Exclut les équipements ayant PA, PM, Portée ou Invocation">
+                            <input type="checkbox" id="smash-filter-no-papmpo">
+                            Sans PA / PM / PO / Invo
+                        </label>
+                        <label class="smash-checkbox-label" title="N'affiche que les équipements non dropables par les monstres">
+                            <input type="checkbox" id="smash-filter-nondrop">
+                            Non dropable uniquement
+                        </label>
+                    </div>
+                    <button id="btn-smash-show-hidden" class="btn-smash-show-hidden"
+                            title="Voir et gérer les items cachés du scanner">
+                        👁 Cachés
+                    </button>
+                    <button id="btn-smash-scan" class="btn-smash-scan">
+                        💥 Scanner les brisages
+                    </button>
+                </div>
+            </div>
+            <div id="smash-scan-results" class="smash-scan-results">
+                <div class="smash-empty">
+                    Cliquez sur "Scanner les brisages" pour générer le classement.
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- ==========================================
+         ONGLET 2 : BONS PLANS (SCANNER DE MARCHÉ)
+         ========================================== -->
+    <div id="tab-deals" class="app-tab hidden">
+
+        <header class="deals-header">
+            <div class="deals-header-content">
+                <h2>Top 50 des Crafts les plus rentables</h2>
+                <p>Compare le coût de craft optimal (achat ou sous-craft) avec le prix de revente HDV enregistré.</p>
+                <p class="deals-warning">📊 Classement : d'abord les crafts sans prix manquant, puis 1 manquant, 2, etc. Les crafts avec prix manquants affichent un badge rouge.</p>
+                <div id="deals-res-level-info" class="deals-res-level-info hidden"></div>
+            </div>
+            <div class="deals-header-actions">
+                <select id="filter-category-deals" class="deals-category-select">
+                    <option value="">Toutes les catégories</option>
+                </select>
+                <div class="deals-level-filter">
+                    <label for="deals-level-min">Niv.</label>
+                    <input type="number" id="deals-level-min" class="deals-level-input"
+                           min="1" max="200" placeholder="min" title="Niveau minimum">
+                    <span>—</span>
+                    <input type="number" id="deals-level-max" class="deals-level-input"
+                           min="1" max="200" placeholder="max" title="Niveau maximum">
+                </div>
+                <button id="btn-refresh-deals" class="btn-refresh">🔄 Lancer l'analyse du marché</button>
+                <button id="btn-deals-show-hidden" class="btn-reset-prices"
+                        title="Voir et réafficher les bons plans cachés">
+                    👁 Cachés
+                </button>
+                <button id="btn-reset-prices" class="btn-reset-prices"
+                        title="Supprimer les prix HDV des équipements de la catégorie sélectionnée">
+                    🗑 Réinitialiser les prix
+                </button>
+            </div>
+        </header>
+
+        <div class="deals-layout">
+
+            <!-- ── SIDEBAR GAUCHE : ressources au-dessus du niveau max ── -->
+            <aside class="deals-res-sidebar hidden" id="deals-res-sidebar-high">
+                <div class="deals-res-sidebar-header">
+                    <h4>📦 Ressources haut niveau</h4>
+                    <p class="deals-res-sidebar-sub" id="deals-res-sidebar-high-sub">
+                        Niveau > max sélectionné
+                    </p>
+                </div>
+                <div id="deals-res-sidebar-list-high" class="deals-res-sidebar-list">
+                    <!-- Peuplé par _renderHighLevelResSidebar() -->
+                </div>
+            </aside>
+
+            <!-- ── CARTES BONS PLANS ── -->
+            <div id="deals-container" class="deals-container">
+                <div class="empty-deals-message">
+                    Cliquez sur "Lancer l'analyse du marché" pour générer le classement.
+                </div>
+            </div>
+
+            <!-- ── SIDEBAR DROITE : ressources en dessous du niveau min ── -->
+            <aside class="deals-res-sidebar hidden" id="deals-res-sidebar-low">
+                <div class="deals-res-sidebar-header">
+                    <h4>📦 Ressources bas niveau</h4>
+                    <p class="deals-res-sidebar-sub" id="deals-res-sidebar-low-sub">
+                        Niveau &lt; min sélectionné
+                    </p>
+                </div>
+                <div id="deals-res-sidebar-list-low" class="deals-res-sidebar-list">
+                    <!-- Peuplé par _renderLowLevelResSidebar() -->
+                </div>
+            </aside>
+
+        </div>
+    </div>
+
+    <!-- ==========================================
+         ONGLET 3 : TABLEAU DE BORD DES PRIX
+         ========================================== -->
+    <div id="tab-dashboard" class="app-tab hidden">
+
+        <div class="dash-page-header">
+            <div>
+                <h2 class="dash-title">📊 Tableau de bord des Prix</h2>
+                <p class="dash-subtitle">Vue globale de tous les prix enregistrés avec horodatage réel.</p>
+            </div>
+            <div class="dash-header-actions">
+                <select id="dash-filter-type" class="dash-filter-select">
+                    <option value="all">Tout afficher</option>
+                    <option value="set">Avec prix</option>
+                    <option value="missing">Sans prix</option>
+                </select>
+                <button id="btn-refresh-dashboard" class="btn-dash-refresh">🔄 Actualiser</button>
+            </div>
+        </div>
+
+        <div class="dash-stats-bar" id="dash-stats-bar"></div>
+
+        <div class="dash-sections">
+
+            <div class="dash-section">
+                <div class="dash-section-header">
+                    <span class="dash-section-icon">📦</span>
+                    <h3>Ressources</h3>
+                    <span class="dash-section-count" id="dash-count-res"></span>
+                </div>
+                <div class="dash-table-wrap">
+                    <table class="dash-table" id="dash-table-res">
+                        <thead><tr><th></th><th>Nom</th><th>Prix (K)</th><th>Dernière MAJ</th><th>Âge</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="dash-pagination" id="dash-pag-res"></div>
+            </div>
+
+            <div class="dash-section">
+                <div class="dash-section-header">
+                    <span class="dash-section-icon">⚔</span>
+                    <h3>Équipements HDV</h3>
+                    <span class="dash-section-count" id="dash-count-equip"></span>
+                </div>
+                <div class="dash-table-wrap">
+                    <table class="dash-table" id="dash-table-equip">
+                        <thead><tr><th></th><th>Nom</th><th>Niveau</th><th>Prix HDV (K)</th><th>Dernière MAJ</th><th>Âge</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="dash-pagination" id="dash-pag-equip"></div>
+            </div>
+
+            <div class="dash-section">
+                <div class="dash-section-header">
+                    <span class="dash-section-icon">✨</span>
+                    <h3>Runes</h3>
+                    <span class="dash-section-count" id="dash-count-runes"></span>
+                </div>
+                <div class="dash-table-wrap">
+                    <table class="dash-table" id="dash-table-runes">
+                        <thead><tr><th></th><th>Rune</th><th>Prix (K)</th><th>Dernière MAJ</th><th>Âge</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="dash-pagination" id="dash-pag-runes"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ==========================================
+         ONGLET 4 : OBJECTIF DE CRAFT
+         ========================================== -->
+    <div id="tab-objectif" class="app-tab hidden">
+        <div class="objectif-layout">
+
+            <div class="objectif-panel objectif-left">
+                <h2 class="objectif-title">🎯 Objectif de Craft</h2>
+                <p class="objectif-subtitle">Sélectionnez un item et une quantité pour obtenir la liste de courses complète.</p>
+                <div class="objectif-search-wrap">
+                    <input type="text" id="objectif-search" placeholder="Rechercher un item à crafter..." autocomplete="off">
+                    <div id="objectif-search-results" class="dropdown-results hidden"></div>
+                </div>
+                <div class="objectif-qty-row">
+                    <label for="objectif-qty">Quantité à crafter :</label>
+                    <input type="number" id="objectif-qty" value="1" min="1" max="9999">
+                </div>
+                <div id="objectif-selected-item" class="objectif-selected-item hidden">
+                    <img id="objectif-item-icon" src="" alt="">
+                    <div>
+                        <div id="objectif-item-name" class="objectif-item-name"></div>
+                        <div id="objectif-item-level" class="objectif-item-level"></div>
+                    </div>
+                </div>
+                <button id="btn-compute-objectif" class="btn-objectif" disabled>
+                    Calculer la liste de courses
+                </button>
+            </div>
+
+            <div class="objectif-panel objectif-right" id="objectif-results">
+                <div class="objectif-empty">Sélectionnez un item pour commencer.</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ==========================================
+         ONGLET 5 : ARBRE DE DÉPENDANCES
+         ========================================== -->
+    <div id="tab-dependency" class="app-tab hidden">
+        <div class="dep-layout">
+
+            <div class="dep-left">
+                <h2 class="dep-title">🔗 Arbre de dépendances</h2>
+                <p class="dep-subtitle">Recherchez une ressource pour voir quels items l'utilisent.</p>
+                <input type="text" id="dep-search" class="dep-search-input" placeholder="Rechercher une ressource...">
+                <div id="dep-resource-list" class="dep-resource-list"></div>
+            </div>
+
+            <div class="dep-right" id="dep-detail">
+                <div class="dep-empty">← Sélectionnez une ressource</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ==========================================
+         ONGLET 6 : COMPARATEUR DE BRISAGE
+         ========================================== -->
+    <div id="tab-brisage" class="app-tab hidden">
+
+        <div class="brisage-page-header">
+            <div>
+                <h2 class="brisage-title">💎 Comparateur de Brisage</h2>
+                <p class="brisage-subtitle">Trouvez les items les plus rentables à briser pour obtenir une rune cible.</p>
+            </div>
+        </div>
+
+        <div class="brisage-controls">
+            <div class="brisage-control-group">
+                <label for="brisage-rune-select">Rune cible</label>
+                <select id="brisage-rune-select" class="brisage-select"></select>
+            </div>
+            <div class="brisage-control-group">
+                <label for="brisage-rune-price">Prix de la rune (K)</label>
+                <input type="number" id="brisage-rune-price" placeholder="Prix..." min="0">
+            </div>
+            <div class="brisage-control-group">
+                <label for="brisage-coeff">% de l'objet (coeff)</label>
+                <input type="number" id="brisage-coeff" value="100" min="1" max="100">
+            </div>
+            <div class="brisage-control-group">
+                <label for="brisage-lvl-min">Niveau min</label>
+                <input type="number" id="brisage-lvl-min" value="1" min="1" max="230">
+            </div>
+            <div class="brisage-control-group">
+                <label for="brisage-lvl-max">Niveau max</label>
+                <input type="number" id="brisage-lvl-max" value="230" min="1" max="230">
+            </div>
+            <button id="btn-compute-brisage" class="btn-brisage">🔍 Analyser</button>
+        </div>
+
+        <div id="brisage-results" class="brisage-results">
+            <div class="brisage-empty">Sélectionnez une rune et cliquez sur Analyser.</div>
+        </div>
+
+    </div>
+
+    <!-- ==========================================
+         ONGLET 7 : HISTORIQUE DE RENTABILITÉ
+         ========================================== -->
+    <div id="tab-historique" class="app-tab hidden">
+
+        <div class="histo-page-header">
+            <div>
+                <h2 class="histo-title">📈 Historique de Rentabilité</h2>
+                <p class="histo-subtitle">Chaque analyse de marché est sauvegardée automatiquement. Les snapshots sont conservés en local.</p>
+            </div>
+            <button id="btn-clear-history" class="btn-clear-history">🗑 Effacer l'historique</button>
+        </div>
+
+        <div id="historique-container" class="historique-container">
+            <div class="histo-empty">Aucun historique. Lancez d'abord une analyse de marché.</div>
+        </div>
+
+    </div>
+
+    <!-- ==========================================
+         ONGLET 8 : TRADING DE RESSOURCES
+         ========================================== -->
+    <div id="tab-trading" class="app-tab hidden">
+
+        <!-- En-tête et recherche de ressource / Action Bulk -->
+        <header class="trading-header">
+            <div class="trading-header-content">
+                <h2>🔁 Analyse de Trading — Ressources</h2>
+                <p>Évaluez si une ressource est rentable à trader sur l'HDV en croisant
+                   prix, taux de drop et demande en craft.</p>
+            </div>
+            <div class="trading-header-actions" style="display: flex; gap: 1rem; align-items: flex-end;">
+                <div class="trading-level-filter">
+                    <label style="font-size: 0.82rem; color: var(--tx-faint);">Niv.</label>
+                    <input type="number" id="trading-level-min" class="trading-level-input"
+                           min="1" max="230" placeholder="min" title="Niveau minimum">
+                    <span style="color: var(--tx-faint);">—</span>
+                    <input type="number" id="trading-level-max" class="trading-level-input"
+                           min="1" max="230" placeholder="max" title="Niveau maximum">
+                </div>
+                <button id="btn-trading-analyze-all" class="btn-trading-analyze-all" style="padding: 0.5rem 1rem;">
+                    🔍 Analyser toutes les ressources
+                </button>
+            </div>
+        </header>
+        
+        <div class="trading-search-section" style="margin-bottom: 1.5rem;">
+            <div class="trading-search-wrapper">
+                <input type="text" id="trading-search"
+                       placeholder="Rechercher une ressource individuelle..." autocomplete="off">
+                <div id="trading-search-results" class="dropdown-results hidden"></div>
+            </div>
+        </div>
+
+        <!-- Zone principale : saisie + résultats -->
+        <div id="trading-main" class="hidden">
+
+            <!-- Ressource sélectionnée -->
+            <div class="trading-selected-card">
+                <img id="trading-res-icon" src="" alt="">
+                <div class="trading-res-info">
+                    <h3 id="trading-res-name">—</h3>
+                    <div class="trading-res-meta">
+                        <span id="trading-res-usage"></span>
+                        <span id="trading-res-drop"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="trading-grid">
+
+                <!-- Colonne gauche : saisie des données marché -->
+                <section class="trading-inputs-panel">
+                    <h4 class="trading-panel-title">📥 Données du marché HDV</h4>
+
+                    <div class="trading-input-group">
+                        <label>Prix à l'unité</label>
+                        <input type="number" id="trading-price-1"   class="trading-price-input" min="0" placeholder="—">
+                    </div>
+                    <div class="trading-input-group">
+                        <label>Prix à la dizaine</label>
+                        <input type="number" id="trading-price-10"  class="trading-price-input" min="0" placeholder="—">
+                    </div>
+                    <div class="trading-input-group">
+                        <label>Prix à la centaine</label>
+                        <input type="number" id="trading-price-100" class="trading-price-input" min="0" placeholder="—">
+                    </div>
+                    <div class="trading-input-group">
+                        <label>Prix au millier</label>
+                        <input type="number" id="trading-price-1000" class="trading-price-input" min="0" placeholder="—">
+                    </div>
+
+                    <hr class="trading-separator">
+
+                    <!-- Statistiques de vente allégées -->
+                    <div class="trading-input-group">
+                        <label>Prix moyen</label>
+                        <input type="number" id="trading-avg-price" class="trading-price-input" min="0" placeholder="—">
+                    </div>
+
+                    <button id="btn-trading-analyze" class="btn-trading-analyze">
+                        ⚡ Analyser
+                    </button>
+                </section>
+
+                <!-- Colonne droite : résultats -->
+                <section class="trading-results-panel">
+                    <h4 class="trading-panel-title">📊 Résultat de l'analyse</h4>
+
+                    <!-- Score global -->
+                    <div class="trading-score-block">
+                        <div class="trading-score-circle" id="trading-score-circle">
+                            <span id="trading-score-value">—</span>
+                            <span class="trading-score-label">/ 100</span>
+                        </div>
+                        <div class="trading-verdict" id="trading-verdict">
+                            Renseignez les données puis cliquez sur Analyser.
+                        </div>
+                    </div>
+
+                    <hr class="trading-separator">
+
+                    <!-- Détail des indicateurs -->
+                    <div class="trading-indicators" id="trading-indicators">
+                        <!-- Peuplé par trading.js -->
+                    </div>
+
+                    <!-- Tableau de prix dérivés -->
+                    <div class="trading-price-table" id="trading-price-table">
+                        <!-- Peuplé par trading.js -->
+                    </div>
+
+                    <!-- Plan d'action concret -->
+                    <div class="trading-action-plan" id="trading-action-plan">
+                        <!-- Peuplé par trading.js -->
+                    </div>
+                </section>
+
+            </div><!-- /.trading-grid -->
+
+        </div><!-- /#trading-main -->
+
+        <!-- État vide (avant sélection d'une ressource) -->
+        <div id="trading-empty" class="trading-empty-state">
+            <div class="trading-empty-icon">🔁</div>
+            <p>Recherchez une ressource pour commencer l'analyse individuelle, ou lancez l'analyse globale.</p>
+        </div>
+
+        <!-- Analyse de masse (Bulk) -->
+        <div id="trading-bulk-results" class="hidden"></div>
+
+    </div>
+
+    <!-- ==========================================
+         ONGLET 9 : FARMING DE RESSOURCES
+         ========================================== -->
+    <div id="tab-farming" class="app-tab hidden">
+        <div class="farming-page-header">
+            <div>
+                <h2 class="farming-title">🌾 Classement des Zones de Farm</h2>
+                <p class="farming-subtitle">Identifiez les zones les plus rentables en combinant la densité de monstres, les taux de drop et les prix HDV.</p>
+            </div>
+        </div>
+
+        <div class="farming-controls" style="display: flex; gap: 1rem; align-items: flex-end; margin-bottom: 2rem;">
+            <div class="farming-control-group">
+                <label for="farming-prospection" style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">🔍 Prospection (Groupe)</label>
+                <input type="number" id="farming-prospection" value="100" min="1" style="width: 120px; padding: 0.4rem;">
+            </div>
+            <div class="farming-control-group">
+                <label for="farming-min-price" style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">💰 Prix unitaire minimum (K)</label>
+                <input type="number" id="farming-min-price" value="0" min="0" style="width: 120px; padding: 0.4rem;">
+            </div>
+            <div class="farming-control-group">
+                <label for="farming-level-filter" style="display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">🎯 Niveau de zone</label>
+                <select id="farming-level-filter" style="width: 160px; padding: 0.4rem;">
+                    <option value="">Tous les niveaux</option>
+                    <!-- Peuplé dynamiquement par _populateLevelFilter() -->
+                </select>
+            </div>
+            <button id="btn-farming-compute" class="btn-farming" style="padding: 0.5rem 1rem; cursor: pointer;">
+                ⚔️ Calculer les meilleures zones
+            </button>
+        </div>
+
+        <div id="farming-results" class="farming-results-container">
+            <div class="farming-empty" style="text-align: center; color: var(--tx-faint); margin-top: 3rem;">
+                Cliquez sur "Calculer" pour générer le classement des zones.
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         ONGLET : PANIER
+         ========================================== -->
+    <div id="tab-panier" class="app-tab hidden">
+
+        <div class="panier-page-header">
+            <div>
+                <h2 class="panier-title">🛒 Panier de Craft</h2>
+                <p class="panier-subtitle">
+                    Liste agrégée des ressources à acheter pour tous vos crafts sélectionnés.
+                    Ajoutez des équipements depuis l'onglet <strong>Bons Plans (Crafts)</strong>.
+                </p>
+            </div>
+            <button id="btn-panier-clear" class="btn-panier-clear"
+                    title="Vider le panier">
+                🗑️ Vider le panier
+            </button>
+        </div>
+
+        <div id="panier-content" class="panier-content">
+            <div class="panier-empty">
+                <div class="panier-empty-icon">🛒</div>
+                <p>Votre panier est vide.<br>
+                   Ajoutez des équipements depuis l'onglet
+                   <strong>Bons Plans (Crafts)</strong> en cliquant sur 🛒.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ==========================================
+         SCRIPTS — Ordre de chargement obligatoire
+         ========================================== -->
+    <script src="js/constants.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/imageCache.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/hiddenItems.js"></script>
+    <script src="js/calculator.js"></script>
+    <script src="js/dealsScanner.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/objectifCraft.js"></script>
+    <script src="js/dependencyGraph.js"></script>
+    <script src="js/brisageComparator.js"></script>
+    <script src="js/historique.js"></script>
+    <script src="js/trading.js"></script>
+    <script src="js/farming.js"></script>
+    <script src="js/panier.js"></script>
+    <script src="js/brisageScanner.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+</html>
