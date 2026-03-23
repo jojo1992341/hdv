@@ -1,0 +1,102 @@
+{
+  "equipements": [
+    {
+      "id_itm": 44,
+      "nom": "Épée de Boisaille",
+      "niveau": 7,
+      "categorie": "Épée",
+      "icone": "../images/6007-64.png",
+      "stats": [
+        {
+          "id_effet": 100,
+          "min": 8,
+          "max": 10
+        },
+        {
+          "id_effet": 118,
+          "min": 7,
+          "max": 10
+        },
+        {
+          "id_effet": 422,
+          "min": 1,
+          "max": 1
+        }
+      ],
+      "ingredients": [
+        {
+          "id_res": 16512,
+          "quantite": 3
+        },
+        {
+          "id_res": 303,
+          "quantite": 3
+        }
+      ],
+      "icone_url": "https://api.dofusdu.de/dofus3/v1/img/item/6007-64.png"
+    }
+  ],
+  "ressources": [
+    {
+      "id_res": 16512,
+      "nom": "Plume Chimérique",
+      "icone": "../images/53661-64.png",
+      "taux_drop": 59,
+      "icone_url": "https://api.dofusdu.de/dofus3/v1/img/item/53661-64.png"
+    },
+    {
+      "id_res": 303,
+      "nom": "Bois de Frêne",
+      "icone": "../images/38017-64.png",
+      "taux_drop": 50,
+      "icone_url": "https://api.dofusdu.de/dofus3/v1/img/item/38017-64.png"
+    }
+  ],
+  "monstres": [
+    {
+      "id_monstre": 970,
+      "nom": "Tofu Chimérique",
+      "isBoss": false,
+      "drops": [
+        {
+          "id_res": 289,
+          "taux_drop": 50
+        },
+        {
+          "id_res": 519,
+          "taux_drop": 59
+        },
+        {
+          "id_itm": 2478,
+          "taux_drop": 2.36
+        },
+        {
+          "id_itm": 16503,
+          "taux_drop": 2.36
+        },
+        {
+          "id_res": 16512,
+          "taux_drop": 59
+        },
+        {
+          "id_res": 16663,
+          "taux_drop": 59
+        },
+        {
+          "id_res": 28256,
+          "taux_drop": 59
+        }
+      ],
+      "zones_d_apparition": [
+        {
+          "id_sous_zone": 444,
+          "nom_sous_zone": "Champs",
+          "niveau": 5,
+          "id_zone": 45,
+          "nom_zone": "Incarnam",
+          "est_donjon": false
+        }
+      ]
+    }
+  ]
+}
