@@ -153,10 +153,13 @@ function _computeBrisageResults(params, rw) {
         const expectedKamas = Math.round(expectedRunes * runePrice);
 
         const { itemCost, costSource } = _resolveItemCost(item);
+        const craftAnalysis = evaluateTree(item.id_itm, 1, new Set());
+        const craftCost = craftAnalysis.cost > 0 ? craftAnalysis.cost : null;
         const profit = expectedKamas - itemCost;
         const roi    = itemCost > 0 ? Math.round((profit / itemCost) * 100) : null;
+        const roiCraft = craftCost && craftCost > 0 ? Math.round(((expectedKamas - craftCost) / craftCost) * 100) : null;
 
-        results.push({ item, matchedEffect, expectedRunes, expectedKamas, itemCost, costSource, profit, roi });
+        results.push({ item, matchedEffect, expectedRunes, expectedKamas, itemCost, costSource, profit, roi, roiCraft, craftCost });
     });
 
     return results;
@@ -227,7 +230,7 @@ function _renderBrisageTable(results) {
                     <th></th><th>Item</th><th>Nv</th>
                     <th>Jet moyen</th><th>Runes attendues</th>
                     <th>Gain runes (K)</th><th>Coût item (K)</th>
-                    <th>Bénéfice (K)</th><th>ROI</th>
+                    <th>Bénéfice (K)</th><th>ROI HDV</th><th>ROI Craft</th>
                 </tr></thead>
                 <tbody>${rows}</tbody>
             </table>
@@ -250,6 +253,9 @@ function _renderBrisageRow(r) {
         ? `${r.itemCost} K <span class="brisage-cost-source">(${r.costSource})</span>`
         : '—';
 
+    const roiCraftClass = r.roiCraft === null ? '' : r.roiCraft >= 0 ? 'success-text' : 'danger-text';
+    const roiCraftText  = r.roiCraft === null ? '?' : `${r.roiCraft > 0 ? '+' : ''}${r.roiCraft}%`;
+
     return `<tr>
         <td><img src="${getIcon(r.item.icone)}" class="brisage-item-icon" alt=""></td>
         <td class="brisage-item-name">${r.item.nom}</td>
@@ -260,5 +266,6 @@ function _renderBrisageRow(r) {
         <td class="brisage-mono brisage-cost">${costText}</td>
         <td class="${profitClass} brisage-mono">${profitText}</td>
         <td class="${roiClass} brisage-mono brisage-roi">${roiText}</td>
+        <td class="${roiCraftClass} brisage-mono brisage-roi">${roiCraftText}</td>
     </tr>`;
 }

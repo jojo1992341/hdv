@@ -76,6 +76,14 @@ function setAllPriceLots(id, prices) {
     }
 }
 
+function getPriceTier() {
+    return localStorage.getItem('price_tier') || 'x1';
+}
+
+function setPriceTier(tier) {
+    localStorage.setItem('price_tier', tier);
+}
+
 function getStoredTimestamp(key) {
     const parsed = parseInt(localStorage.getItem(key + '_ts'), 10);
     return Number.isFinite(parsed) ? parsed : 0;

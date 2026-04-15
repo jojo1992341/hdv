@@ -134,6 +134,7 @@ function _initModules() {
 
     setupSearch();
     setupGlobalListeners();
+    setupTierSelector();
 
     setupDealsScanner();
     populateDealsCategoryFilter();

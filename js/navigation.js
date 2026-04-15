@@ -101,6 +101,9 @@ function createTabNavigation({ btnSelector, panelSelector, strategy }) {
         _activatePanel(targetPanel);
         _activeTabId = targetId;
 
+        // Scroll the active button into view (for overflowing nav bars)
+        btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
         // Déclencher les callbacks enregistrés pour cet onglet
         _fireCallbacks(targetId);
     }

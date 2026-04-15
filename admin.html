@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚙ Dofus Runes — Arcane Forge · Admin</title>
+    <title>⚙ Dofus Utility · Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/admin.css">
 </head>
@@ -16,7 +19,7 @@
         <div class="header-title">
             <h1>Backoffice · Gestion des Données</h1>
             <div class="header-nav-links">
-                <a href="index.html" class="back-link">← Calculateur & Bons Plans</a>
+                <a href="index.html" class="back-link">← Retour au Dashboard</a>
             </div>
         </div>
 
@@ -55,7 +58,7 @@
 
                     <!--
                         Import des prix HDV équipements.
-                        Format attendu : [{ "id": <id_itm>, "prix": <valeur> }, ...]
+                        Format attendu :[{ "id": <id_itm>, "prix": <valeur> }, ...]
                     -->
                     <button class="btn btn-secondary" id="btn-import-equip-prices"
                             title="Importer un fichier JSON de prix HDV équipements">
@@ -63,6 +66,11 @@
                     </button>
                     <input type="file" id="input-import-equip-prices"
                            accept=".json" class="hidden">
+
+                    <button class="btn btn-danger" id="btn-reset-equip-prices"
+                            title="Supprimer tous les prix HDV des équipements">
+                        🗑️ Réinitialiser les prix
+                    </button>
 
                     <button class="btn btn-success" id="btn-export-equip">
                         💾 Sauvegarder recettes_dofus.json
@@ -141,6 +149,11 @@
                     <input type="file" id="input-import-prices"
                            accept=".json" class="hidden">
 
+                    <button class="btn btn-danger" id="btn-reset-res-prices"
+                            title="Supprimer tous les prix HDV des ressources">
+                        🗑️ Réinitialiser les prix
+                    </button>
+
                     <button class="btn btn-success" id="btn-export-res">
                         💾 Sauvegarder recettes_dofus.json
                     </button>
@@ -155,6 +168,7 @@
                             <th width="60">Icône</th>
                             <th width="100">ID interne</th>
                             <th class="sortable" data-sort="nom">Nom <span class="sort-icon"></span></th>
+                            <th class="sortable" data-sort="niveau" width="90">Niveau <span class="sort-icon"></span></th>
                             <th class="sortable" data-sort="usage" width="150">
                                 Utilisée dans <span class="sort-icon"></span>
                             </th>

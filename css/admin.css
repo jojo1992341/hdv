@@ -1,5 +1,5 @@
 /* ============================================================
-   DOFUS RUNES — ARCANE FORGE v2 — admin.css
+   DOFUS UTILITY — TRADING & DATA — admin.css
    Styles spécifiques au backoffice (admin.html).
 
    Les variables de design, la typographie, le reset et les
@@ -8,24 +8,20 @@
 
 @import url('tokens.css');
 
-/* ── BODY & ARRIÈRE-PLAN ATMOSPHÉRIQUE ────────────────────── */
+/* ── BODY & ARRIÈRE-PLAN TECH ─────────────────────────────── */
 body {
   font-family: var(--font-ui);
   background-color: var(--bg);
   color: var(--tx);
   line-height: 1.6;
   min-height: 100vh;
-  background-image:
-    radial-gradient(ellipse 80% 35% at 50% -5%, rgba(74,158,255,.05) 0%, transparent 60%),
-    radial-gradient(ellipse 35% 25% at 100% 100%, rgba(240,160,48,.03) 0%, transparent 50%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50V17L28 0l28 17v33L28 66zm0 34L0 84V67l28 16 28-16v17L28 100z' fill='none' stroke='%230f1e2e' stroke-width='0.5'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.016'/%3E%3C/svg%3E");
+  /* Fond uni strict, suppression des effets de particules magiques */
 }
 
 /* ── HEADER / NAV ──────────────────────────────────────────── */
 .admin-header {
   position: sticky; top: 0; z-index: 200;
-  background: linear-gradient(180deg, rgba(6,13,21,.98) 0%, rgba(4,9,15,.98) 100%);
+  background: var(--bg-surface);
   border-bottom: 1px solid var(--brd-hi);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -37,9 +33,9 @@ body {
   width: 100%; height: 1px;
   background: linear-gradient(90deg,
     transparent 0%,
-    rgba(240,160,48,.15) 25%,
-    rgba(240,160,48,.30) 50%,
-    rgba(240,160,48,.15) 75%,
+    var(--azur-line) 25%,
+    var(--azur) 50%,
+    var(--azur-line) 75%,
     transparent 100%);
 }
 
@@ -56,16 +52,16 @@ body {
   font-size: 0.68rem; font-weight: 700;
   letter-spacing: 3.5px;
   text-transform: uppercase;
-  color: var(--amber);
-  text-shadow: 0 0 16px var(--amber-glow);
+  color: var(--azur-hi);
+  text-shadow: 0 0 16px var(--azur-glow);
   display: flex; align-items: center; gap: 10px;
 }
 .header-title h1::before {
   content: '⚙';
   font-size: 1rem;
-  animation: spin-slow 12s linear infinite;
+  animation: tech-spin 8s linear infinite;
 }
-@keyframes spin-slow {
+@keyframes tech-spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
@@ -81,7 +77,7 @@ body {
   letter-spacing: 0.4px;
   text-transform: uppercase;
   padding: 7px 14px;
-  border-radius: var(--r);
+  border-radius: var(--r-sm);
   border: 1px solid var(--brd-hi);
   background: var(--bg-raised);
   transition: color .2s, border-color .2s, background .2s, box-shadow .2s, transform .15s;
@@ -90,7 +86,7 @@ body {
   color: var(--azur);
   border-color: var(--azur-line);
   background: var(--azur-dim);
-  box-shadow: 0 0 14px rgba(74,158,255,.12);
+  box-shadow: 0 0 14px var(--azur-dim);
   transform: translateX(-2px);
 }
 
@@ -114,15 +110,15 @@ body {
 }
 .tab-btn:hover { color: var(--tx); }
 .tab-btn.active {
-  color: var(--amber-hi);
-  border-bottom-color: var(--amber);
-  text-shadow: 0 0 12px var(--amber-glow);
+  color: var(--azur-hi);
+  border-bottom-color: var(--azur);
+  text-shadow: 0 0 12px var(--azur-glow);
 }
 .tab-btn.active::after {
   content: '';
   position: absolute; bottom: -1px; left: 10%; right: 10%;
   height: 3px;
-  background: radial-gradient(ellipse, rgba(240,160,48,.5) 0%, transparent 70%);
+  background: radial-gradient(ellipse, var(--azur-line) 0%, transparent 70%);
 }
 
 /* ── CONTENU PRINCIPAL ─────────────────────────────────────── */
@@ -166,7 +162,7 @@ body {
 .search-bar {
   width: 300px;
   padding: 10px 16px 10px 40px;
-  border-radius: var(--r-lg);
+  border-radius: var(--r-sm);
   border: 1px solid var(--brd-hi);
   background: var(--bg-input);
   color: var(--tx-bright);
@@ -179,14 +175,14 @@ body {
   background-position: 13px center;
 }
 .search-bar:focus {
-  border-color: var(--amber);
-  box-shadow: 0 0 0 2px var(--amber-dim), 0 0 16px var(--amber-glow);
+  border-color: var(--azur);
+  box-shadow: 0 0 0 2px var(--azur-dim), 0 0 16px var(--azur-glow);
 }
 .search-bar::placeholder { color: var(--tx-faint); }
 
 .filter-select {
   padding: 10px 14px;
-  border-radius: var(--r);
+  border-radius: var(--r-sm);
   border: 1px solid var(--brd-hi);
   background: var(--bg-input);
   color: var(--tx);
@@ -202,7 +198,7 @@ body {
 /* ── BOUTONS ───────────────────────────────────────────────── */
 .btn {
   padding: 9px 18px;
-  border-radius: var(--r);
+  border-radius: var(--r-sm);
   border: 1px solid transparent;
   font-family: var(--font-ui);
   font-weight: 600;
@@ -219,13 +215,13 @@ body {
 .btn-sm { padding: 5px 12px; font-size: 0.76rem; }
 
 .btn-primary { background: var(--azur-dim); color: var(--azur); border-color: var(--azur-line); }
-.btn-primary:hover:not(:disabled) { background: rgba(74,158,255,.18); box-shadow: 0 0 16px rgba(74,158,255,.2); }
+.btn-primary:hover:not(:disabled) { background: rgba(0, 242, 255, 0.18); box-shadow: 0 0 16px rgba(0, 242, 255, 0.2); }
 
 .btn-success { background: var(--jade-dim); color: var(--jade); border-color: var(--jade-line); }
-.btn-success:hover:not(:disabled) { background: rgba(0,221,184,.16); box-shadow: 0 0 16px rgba(0,221,184,.18); }
+.btn-success:hover:not(:disabled) { background: rgba(0, 255, 133, 0.16); box-shadow: 0 0 16px rgba(0, 255, 133, 0.18); }
 
 .btn-danger { background: var(--coral-dim); color: var(--coral-hi); border-color: var(--coral-line); }
-.btn-danger:hover:not(:disabled) { background: rgba(255,90,90,.18); box-shadow: 0 0 14px rgba(255,90,90,.18); }
+.btn-danger:hover:not(:disabled) { background: rgba(255, 75, 75, 0.18); box-shadow: 0 0 14px rgba(255, 75, 75, 0.18); }
 
 .btn-secondary { background: var(--bg-raised); color: var(--tx-dim); border-color: var(--brd-hi); }
 .btn-secondary:hover:not(:disabled) { background: var(--bg-overlay); color: var(--tx); border-color: var(--brd-bright); }
@@ -244,14 +240,14 @@ body {
   content: '';
   position: absolute; top: 0; right: 0;
   width: 160px; height: 2px;
-  background: linear-gradient(270deg, var(--amber-line), transparent);
+  background: linear-gradient(270deg, var(--azur-line), transparent);
   pointer-events: none;
 }
 
 .admin-table { width: 100%; border-collapse: collapse; }
 
 .admin-table th {
-  background: rgba(0,0,0,.4);
+  background: var(--bg-raised);
   color: var(--tx-dim);
   font-family: var(--font-ui);
   font-size: 0.67rem; font-weight: 700;
@@ -267,13 +263,14 @@ body {
 .admin-table input[type="checkbox"] { transform: scale(1.2); cursor: pointer; accent-color: var(--azur); }
 
 .admin-table th.sortable { cursor: pointer; user-select: none; transition: background .15s, color .15s; }
-.admin-table th.sortable:hover { background: rgba(240,160,48,.04); color: var(--tx); }
-.admin-table th.sortable:hover .sort-icon { color: var(--amber); }
+.admin-table th.sortable:hover { background: var(--bg-overlay); color: var(--tx-bright); }
+.admin-table th.sortable:hover .sort-icon { color: var(--azur); }
 
-.sort-icon { display: inline-block; margin-left: 5px; color: var(--azur); font-size: 0.72rem; vertical-align: middle; transition: color .15s; }
+.sort-icon { display: inline-block; margin-left: 5px; color: var(--azur-dim); font-size: 0.72rem; vertical-align: middle; transition: color .15s; }
 
+/* Zébrage rigoureux des données */
 .admin-table tbody tr { transition: background .12s; }
-.admin-table tbody tr:nth-child(even) { background: rgba(7,17,28,.6); }
+.admin-table tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.02); }
 .admin-table tbody tr:hover { background: var(--bg-overlay); }
 
 .admin-table img { width: 34px; height: 34px; object-fit: contain; border-radius: 5px; vertical-align: middle; filter: drop-shadow(0 2px 4px rgba(0,0,0,.6)); }
@@ -284,7 +281,7 @@ body {
 .copyable-name:hover { color: var(--azur); border-bottom-color: var(--azur-line); }
 .copied-feedback { color: var(--jade) !important; border-bottom-color: transparent !important; }
 
-/* Score de popularité */
+/* Score de popularité (gardé en ambre car donnée stratégique) */
 .popularity-score {
   font-family: var(--font-mono);
   font-size: 0.86rem;
@@ -292,10 +289,11 @@ body {
   color: var(--amber);
 }
 
-/* Champs de prix dans les tableaux (remplace les inline styles précédents) */
+/* Champs de prix dans les tableaux */
 .admin-price-input {
   width: 104px; padding: 5px 9px;
-  border-radius: var(--r);
+  color: var(--tx-bright);
+  border-radius: var(--r-sm);
   background: var(--bg-input);
   font-family: var(--font-mono);
   font-weight: 600; font-size: 0.84rem;
@@ -360,7 +358,7 @@ body {
   border: 1px solid var(--brd-bright);
   width: 100%; max-width: 620px;
   border-radius: var(--r-xl);
-  box-shadow: var(--sh-lg), 0 0 0 1px rgba(240,160,48,.05);
+  box-shadow: var(--sh-lg);
   display: flex; flex-direction: column;
   max-height: 90vh;
   animation: modal-up .22s cubic-bezier(.16,.8,.5,1);
@@ -370,13 +368,13 @@ body {
   content: '';
   position: absolute; top: 0; left: 0; right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--amber), transparent);
+  background: linear-gradient(90deg, transparent, var(--azur), transparent);
 }
 .modal-content::after {
   content: '';
   position: absolute; top: 0; right: 0;
   width: 200px; height: 2px;
-  background: linear-gradient(270deg, var(--amber-line), transparent);
+  background: linear-gradient(270deg, var(--azur-line), transparent);
   pointer-events: none;
 }
 @keyframes modal-up {
@@ -393,9 +391,8 @@ body {
 .modal-header h2 {
   font-family: var(--font-display);
   font-size: 1rem; font-weight: 700;
-  color: var(--amber-hi);
+  color: var(--tx-bright);
   letter-spacing: 0.5px;
-  text-shadow: 0 0 16px var(--amber-glow);
 }
 .close-modal {
   background: none; border: none;
@@ -405,7 +402,7 @@ body {
   display: flex; align-items: center; justify-content: center;
   border-radius: var(--r-sm);
 }
-.close-modal:hover { color: var(--tx-bright); transform: scale(1.1); }
+.close-modal:hover { color: var(--coral-hi); transform: scale(1.1); }
 
 .modal-body { padding: 22px 26px; overflow-y: auto; flex: 1; }
 
@@ -413,7 +410,7 @@ body {
   padding: 16px 26px;
   border-top: 1px solid var(--brd-hi);
   display: flex; justify-content: flex-end; gap: 10px;
-  background: rgba(0,0,0,.15);
+  background: var(--bg-raised);
   flex-shrink: 0;
 }
 
@@ -425,7 +422,7 @@ body {
 .form-group input {
   background: var(--bg-input); border: 1px solid var(--brd-hi);
   color: var(--tx-bright);
-  padding: 10px 13px; border-radius: var(--r);
+  padding: 10px 13px; border-radius: var(--r-sm);
   font-family: var(--font-ui); font-size: 0.9rem;
   outline: none; transition: border-color .2s, box-shadow .2s;
 }
@@ -456,12 +453,12 @@ h3 {
 .recipe-row:last-child { margin-bottom: 0; }
 .recipe-row input {
   background: var(--bg-input); border: 1px solid var(--brd-hi);
-  color: var(--tx-bright); padding: 8px 10px; border-radius: var(--r);
+  color: var(--tx-bright); padding: 8px 10px; border-radius: var(--r-sm);
   font-family: var(--font-ui); font-size: 0.88rem; outline: none;
   transition: border-color .2s, box-shadow .2s;
 }
-.recipe-row input:focus { border-color: var(--amber); box-shadow: 0 0 0 2px var(--amber-dim); }
-.recipe-row input[type="number"].rec-qty { width: 72px; font-family: var(--font-mono); font-weight: 600; color: var(--amber); }
+.recipe-row input:focus { border-color: var(--azur); box-shadow: 0 0 0 2px var(--azur-dim); }
+.recipe-row input[type="number"].rec-qty { width: 72px; font-family: var(--font-mono); font-weight: 600; color: var(--tx-bright); }
 .recipe-row input[type="text"].rec-name  { flex: 2; }
 .recipe-row input[type="number"].rec-id  {
   flex: 1;
@@ -485,11 +482,11 @@ h3 {
 .effect-item {
   display: flex; align-items: center; justify-content: space-between;
   background: var(--bg-raised); padding: 8px 12px;
-  border-radius: var(--r); border: 1px solid var(--brd);
+  border-radius: var(--r-sm); border: 1px solid var(--brd);
   transition: border-color .2s, background .2s;
 }
 .effect-item:hover { border-color: var(--brd-hi); }
-.effect-item.active { border-color: var(--azur-line); background: rgba(74,158,255,.04); }
+.effect-item.active { border-color: var(--azur-line); background: var(--azur-dim); }
 
 .effect-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.84rem; flex: 1; user-select: none; }
 .effect-inputs { display: flex; gap: 5px; opacity: .25; pointer-events: none; transition: opacity .2s; }
@@ -524,8 +521,7 @@ h3 {
   font-size: 0.82rem;
 }
 
-/* Champ taux de drop inline — même apparence que admin-price-input
-   mais couleur jade pour distinguer visuellement du prix */
+/* Champ taux de drop inline */
 .res-drop-input {
   color: var(--jade) !important;
 }
@@ -534,13 +530,6 @@ h3 {
 }
 
 /* ── PRIX PAR LOT — cellules inline du tableau Ressources ───── */
-
-/*
- * Chaque cellule de prix ×N affiche un micro-libellé (×1, ×10…)
- * au-dessus du champ de saisie, en colonne compacte.
- * La largeur du champ est réduite par rapport à admin-price-input
- * pour tenir dans les 4 colonnes sans débordement horizontal.
- */
 .res-price-lot-cell {
   display: flex;
   flex-direction: column;
@@ -559,21 +548,11 @@ h3 {
   user-select: none;
 }
 
-/*
- * Variante compacte de .admin-price-input pour les 4 colonnes de lot.
- * Largeur réduite à 84px (vs 104px) pour éviter le scroll horizontal.
- */
 .res-price-lot-input {
   width: 84px;
 }
 
 /* ── PRIX PAR LOT — grille 2×2 dans la modale Ressource ─────── */
-
-/*
- * La grille 2×2 aligne les 4 paliers en deux colonnes,
- * cohérente avec .form-grid déjà utilisé pour les autres champs.
- * Les inputs héritent des styles .form-group input existants.
- */
 .res-price-modal-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -585,10 +564,6 @@ h3 {
   margin-bottom: 6px;
 }
 
-/*
- * Dans la grille modale, les labels de prix reçoivent une couleur
- * ambre subtile pour les distinguer visuellement du taux de drop.
- */
 .res-price-modal-grid .form-group label {
   color: var(--amber-deep);
 }
@@ -614,19 +589,32 @@ h3 {
    IMPORT — SURVEILLANCE AUTOMATIQUE DE FICHIER
 ============================================================================= */
 .btn-watching {
-  border-color: var(--jade-line, #2a6b4a) !important;
-  background: var(--jade-dim, #0d2e1e) !important;
-  color: var(--jade-hi, #4ade80) !important;
+  border-color: var(--jade-line) !important;
+  background: var(--jade-dim) !important;
+  color: var(--jade-hi) !important;
   max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .btn-watching:hover {
-  background: var(--jade-line, #2a6b4a) !important;
+  background: var(--jade-line) !important;
 }
 .btn-watch-updated {
-  border-color: var(--azur-line, #1e5f8c) !important;
-  background: var(--azur-dim, #0a1e30) !important;
-  color: var(--azur-hi, #38bdf8) !important;
+  border-color: var(--azur-line) !important;
+  background: var(--azur-dim) !important;
+  color: var(--azur-hi) !important;
+}
+
+/* =============================================================================
+   ADMIN — PRIX MOYEN COLONNE
+============================================================================= */
+.res-avg-price {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--tx-bright);
+  background: var(--bg-raised);
+  border: 1px solid var(--brd-hi);
+  border-radius: var(--r-sm);
+  padding: 2px 6px;
 }

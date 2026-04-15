@@ -19,9 +19,6 @@
    CONFIGURATION
 ============================================================================= */
 
-/** Nombre maximum de deals affichés après un scan. @type {number} */
-const MAX_DEALS = 50;
-
 /**
  * Délai en ms avant l'exécution du scan, pour laisser le temps à l'UI
  * d'afficher le message "Analyse en cours..." avant de bloquer le thread.
@@ -37,8 +34,23 @@ const MAX_HISTORY_SNAPSHOTS = 100;
 ============================================================================= */
 
 const DealsScannerState = {
-    /** @type {string} Catégorie d'équipements sélectionnée ("" = toutes) */
-    currentCategory: '',
+    /** @type {Set<string>} Catégories sélectionnées ("" = toutes). */
+    selectedCategories: new Set(),
+
+    /** @type {Array} Derniers résultats du scan (top N affiché). */
+    lastDeals: [],
+
+    /** @type {Object.<number, Array>} Deals bruts groupés par prix manquants (avant tranche). */
+    rawDeals: {},
+
+    /** @type {number} Nombre max de deals affichés. */
+    maxDeals: 50,
+
+    /** @type {'pct'|'kamas'} Colonne de tri active. */
+    sortKey: 'pct',
+
+    /** @type {'desc'|'asc'} Direction du tri. */
+    sortDir: 'desc',
 };
 
 /* =============================================================================
@@ -54,6 +66,26 @@ function setupDealsScanner() {
     document.getElementById('btn-reset-prices').addEventListener('click', resetCategoryPrices);
     document.getElementById('btn-deals-show-hidden')?.addEventListener('click', _showHiddenDealsPanel);
 
+    // Tri bénéfice
+    document.getElementById('deals-sort-pct')?.addEventListener('click', () => {
+        if (DealsScannerState.sortKey === 'pct') {
+            DealsScannerState.sortDir = DealsScannerState.sortDir === 'desc' ? 'asc' : 'desc';
+        } else {
+            DealsScannerState.sortKey = 'pct';
+            DealsScannerState.sortDir = 'desc';
+        }
+        _reApplySort();
+    });
+    document.getElementById('deals-sort-kamas')?.addEventListener('click', () => {
+        if (DealsScannerState.sortKey === 'kamas') {
+            DealsScannerState.sortDir = DealsScannerState.sortDir === 'desc' ? 'asc' : 'desc';
+        } else {
+            DealsScannerState.sortKey = 'kamas';
+            DealsScannerState.sortDir = 'desc';
+        }
+        _reApplySort();
+    });
+
     // Mise à jour info + sidebar à chaque changement de filtre
     const onFilterChange = () => {
         _updateResLevelInfo();
@@ -62,101 +94,162 @@ function setupDealsScanner() {
     };
     document.getElementById('deals-level-min')?.addEventListener('input', onFilterChange);
     document.getElementById('deals-level-max')?.addEventListener('input', onFilterChange);
+
+    // Nombre de deals
+    const maxDealsInput = document.getElementById('deals-max-deals');
+    if (maxDealsInput) {
+        DealsScannerState.maxDeals = parseInt(maxDealsInput.value, 10) || 50;
+        maxDealsInput.addEventListener('input', (e) => {
+            DealsScannerState.maxDeals = parseInt(e.target.value, 10) || 50;
+            const raw = DealsScannerState.rawDeals;
+            if (raw && Object.keys(raw).length) {
+                const dealsToShow = _sortDealsByPriority(raw);
+                DealsScannerState.lastDeals = dealsToShow;
+                _renderDealCards(document.getElementById('deals-container'), dealsToShow);
+            }
+        });
+    }
 }
 
+/**
+ * Construit le sélecteur multi-catégories (dropdown checkboxes).
+ * Remplace le <select> par un bouton + panneau de cases à cocher.
+ */
 function populateDealsCategoryFilter() {
-    const select     = document.getElementById('filter-category-deals');
     const categories = [...new Set(dbEquipments.map(e => e.categorie || 'Inconnu'))]
         .filter(Boolean)
         .sort();
 
-    select.innerHTML = '<option value="">Toutes les catégories</option>';
-    categories.forEach(cat => {
-        const opt       = document.createElement('option');
-        opt.value       = cat;
-        opt.textContent = cat;
-        select.appendChild(opt);
+    // Cherche le conteneur dans le header
+    const wrapper = document.getElementById('filter-category-deals-wrapper');
+    if (!wrapper) return;
+
+    wrapper.innerHTML = `
+        <div class="deals-cat-dropdown" id="deals-cat-dropdown">
+            <button class="deals-cat-btn" id="deals-cat-btn" type="button">
+                Toutes les catégories <span class="deals-cat-arrow">▾</span>
+            </button>
+            <div class="deals-cat-panel hidden" id="deals-cat-panel">
+                <label class="deals-cat-item deals-cat-all">
+                    <input type="checkbox" id="deals-cat-all-chk" checked>
+                    <span>Toutes les catégories</span>
+                </label>
+                <hr class="deals-cat-sep">
+                ${categories.map(cat => `
+                <label class="deals-cat-item">
+                    <input type="checkbox" class="deals-cat-chk" value="${_escapeAttr(cat)}">
+                    <span>${_escapeHtml(cat)}</span>
+                </label>`).join('')}
+            </div>
+        </div>`;
+
+    const btn      = wrapper.querySelector('#deals-cat-btn');
+    const panel    = wrapper.querySelector('#deals-cat-panel');
+    const allChk   = wrapper.querySelector('#deals-cat-all-chk');
+    const catChks  = () => wrapper.querySelectorAll('.deals-cat-chk');
+
+    // Toggle panel
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        panel.classList.toggle('hidden');
+    });
+    document.addEventListener('click', (e) => {
+        if (!wrapper.contains(e.target)) panel.classList.add('hidden');
     });
 
-    select.addEventListener('change', (e) => {
-        DealsScannerState.currentCategory = e.target.value;
-        _updateResLevelInfo();
-        _renderHighLevelResSidebar();
-        _renderLowLevelResSidebar();
+    // "Toutes" coche/décoche tout
+    allChk.addEventListener('change', () => {
+        catChks().forEach(chk => { chk.checked = false; });
+        DealsScannerState.selectedCategories.clear();
+        _updateCatBtnLabel(btn, 0);
+        _onCategoryChange();
+    });
+
+    // Case individuelle
+    catChks().forEach(chk => {
+        chk.addEventListener('change', () => {
+            const sel = DealsScannerState.selectedCategories;
+            if (chk.checked) {
+                sel.add(chk.value);
+                allChk.checked = false;
+            } else {
+                sel.delete(chk.value);
+                if (sel.size === 0) allChk.checked = true;
+            }
+            _updateCatBtnLabel(btn, sel.size);
+            _onCategoryChange();
+        });
     });
 }
 
+function _updateCatBtnLabel(btn, count) {
+    const arrow = btn.querySelector('.deals-cat-arrow');
+    btn.textContent = count === 0 ? 'Toutes les catégories' : `${count} catégorie(s)`;
+    btn.appendChild(arrow ?? Object.assign(document.createElement('span'), {
+        className: 'deals-cat-arrow', textContent: '▾'
+    }));
+}
+
+function _onCategoryChange() {
+    _updateResLevelInfo();
+    _renderHighLevelResSidebar();
+    _renderLowLevelResSidebar();
+}
+
 /**
- * Calcule et affiche le niveau de ressource minimum et maximum
- * nécessaires pour crafter les équipements correspondant aux filtres actifs
- * (catégorie + tranche de niveau).
- *
- * Le niveau de chaque ressource est lu depuis localStorage (clé niveau_{id}),
- * stocké lors de l'import du fichier de prix.
- * @private
+ * Calcule le niveau min/max des RESSOURCES du top 50 en cours.
+ * Se met à jour après chaque scan.
  */
 function _updateResLevelInfo() {
     const el = document.getElementById('deals-res-level-info');
     if (!el) return;
 
-    const category    = DealsScannerState.currentCategory;
-    const levelMinRaw = parseInt(document.getElementById('deals-level-min')?.value, 10);
-    const levelMaxRaw = parseInt(document.getElementById('deals-level-max')?.value, 10);
-    const levelMin    = Number.isFinite(levelMinRaw) ? levelMinRaw : null;
-    const levelMax    = Number.isFinite(levelMaxRaw) ? levelMaxRaw : null;
+    const deals = DealsScannerState.lastDeals;
+    if (!deals.length) { el.classList.add('hidden'); return; }
 
-    // Aucun filtre actif → on masque l'info
-    if (!category && levelMin === null && levelMax === null) {
-        el.classList.add('hidden');
-        return;
-    }
-
-    // Filtre les équipements selon catégorie et niveau
-    const filtered = dbEquipments.filter(item => {
-        if (!item.ingredients?.length) return false;
-        if (category && (item.categorie || 'Inconnu') !== category) return false;
-        if (levelMin !== null && (item.niveau ?? 0) < levelMin) return false;
-        if (levelMax !== null && (item.niveau ?? 0) > levelMax) return false;
-        return true;
-    });
-
-    if (!filtered.length) {
-        el.classList.add('hidden');
-        return;
-    }
-
-    // Collecte tous les IDs de ressources (ingrédients directs)
-    const resIds = new Set();
-    filtered.forEach(item => {
-        item.ingredients.forEach(ing => resIds.add(ing.id_res));
-    });
-
-    // Lit le niveau de chaque ressource depuis localStorage
     let minNiveau = Infinity;
     let maxNiveau = -Infinity;
 
-    resIds.forEach(id => {
-        const raw    = localStorage.getItem(`niveau_${id}`);
-        const niveau = raw !== null ? parseInt(raw, 10) : NaN;
-        if (!Number.isFinite(niveau)) return;
-        if (niveau < minNiveau) minNiveau = niveau;
-        if (niveau > maxNiveau) maxNiveau = niveau;
+    deals.forEach(deal => {
+        deal.item.ingredients?.forEach(ing => {
+            const raw    = localStorage.getItem(`niveau_${ing.id_res}`);
+            const niveau = raw !== null ? parseInt(raw, 10) : NaN;
+            if (!Number.isFinite(niveau)) return;
+            if (niveau < minNiveau) minNiveau = niveau;
+            if (niveau > maxNiveau) maxNiveau = niveau;
+        });
     });
 
-    if (minNiveau === Infinity) {
-        // Aucun niveau connu → masqué
-        el.classList.add('hidden');
-        return;
-    }
+    if (minNiveau === Infinity) { el.classList.add('hidden'); return; }
 
     el.classList.remove('hidden');
     el.innerHTML = `
         <span class="deals-res-level-item">
-            📦 Niveau ressource le plus bas : <strong>${minNiveau}</strong>
-        </span>
-        <span class="deals-res-level-sep">·</span>
-        <span class="deals-res-level-item">
-            📦 Niveau ressource le plus haut : <strong>${maxNiveau}</strong>
+            📦 Ressources du top 50 — Niv. <strong>${minNiveau}</strong>
+            à <strong>${maxNiveau}</strong>
+        </span>`;
+}
+
+/**
+ * Affiche le niveau min/max des équipements du top 50 en cours.
+ * @param {Array} deals
+ * @private
+ */
+function _renderDealsLevelInfo(deals) {
+    const el = document.getElementById('deals-top50-level-info');
+    if (!el) return;
+    if (!deals.length) { el.classList.add('hidden'); return; }
+
+    const levels = deals.map(d => d.item.niveau ?? 0).filter(v => v > 0);
+    if (!levels.length) { el.classList.add('hidden'); return; }
+
+    const minLvl = Math.min(...levels);
+    const maxLvl = Math.max(...levels);
+
+    el.classList.remove('hidden');
+    el.innerHTML = `
+        <span class="deals-top50-lvl-item">🏆 Top 50 — équipements de Niv.
+            <strong>${minLvl}</strong> à <strong>${maxLvl}</strong>
         </span>`;
 }
 
@@ -208,7 +301,6 @@ function _renderResSidebar({ sidebarId, listId, subId, compareFn, badgeLabel, re
     const listEl  = document.getElementById(listId);
     if (!sidebar || !listEl) return;
 
-    const category    = DealsScannerState.currentCategory;
     const levelMaxRaw = parseInt(document.getElementById('deals-level-max')?.value, 10);
     const levelMinRaw = parseInt(document.getElementById('deals-level-min')?.value, 10);
     const levelMax    = Number.isFinite(levelMaxRaw) ? levelMaxRaw : null;
@@ -220,24 +312,18 @@ function _renderResSidebar({ sidebarId, listId, subId, compareFn, badgeLabel, re
         return;
     }
 
-    // Filtre les équipements de la tranche active
-    const filteredEquips = dbEquipments.filter(item => {
-        if (!item.ingredients?.length) return false;
-        if (category && (item.categorie || 'Inconnu') !== category) return false;
-        if (levelMin !== null && (item.niveau ?? 0) < levelMin) return false;
-        if (levelMax !== null && (item.niveau ?? 0) > levelMax) return false;
-        return true;
-    });
-
-    if (!filteredEquips.length) {
+    // Utilise les deals du top 50 en cours (pas tous les équipements)
+    const currentDeals = DealsScannerState.lastDeals;
+    if (!currentDeals.length) {
         sidebar.classList.add('hidden');
         return;
     }
 
-    // Collecte les ressources correspondant au critère
+    // Collecte les ressources des deals du top 50 correspondant au critère
     const resMap = new Map();
-    filteredEquips.forEach(item => {
-        item.ingredients.forEach(ing => {
+    currentDeals.forEach(deal => {
+        if (!deal.item.ingredients?.length) return;
+        deal.item.ingredients.forEach(ing => {
             const raw    = localStorage.getItem(`niveau_${ing.id_res}`);
             const niveau = raw !== null ? parseInt(raw, 10) : NaN;
             if (!compareFn(niveau, levelMax, levelMin)) return;
@@ -253,7 +339,7 @@ function _renderResSidebar({ sidebarId, listId, subId, compareFn, badgeLabel, re
                 });
             }
             const entry = resMap.get(ing.id_res);
-            if (!entry.usedBy.includes(item.nom)) entry.usedBy.push(item.nom);
+            if (!entry.usedBy.includes(deal.item.nom)) entry.usedBy.push(deal.item.nom);
         });
     });
 
@@ -324,6 +410,42 @@ function _renderResSidebar({ sidebarId, listId, subId, compareFn, badgeLabel, re
     }
 }
 
+/**
+ * Re-trie et re-rend les deals déjà calculés (sans relancer le scan complet).
+ * @private
+ */
+function _reApplySort() {
+    const { sortKey, sortDir, lastDeals } = DealsScannerState;
+    if (!lastDeals.length) return;
+
+    const dir = sortDir === 'desc' ? -1 : 1;
+    const sorted = [...lastDeals].sort((a, b) => {
+        const va = sortKey === 'kamas' ? a.profit : a.profitPct;
+        const vb = sortKey === 'kamas' ? b.profit : b.profitPct;
+        return dir * (vb - va);
+    });
+
+    DealsScannerState.lastDeals = sorted;
+    _renderDealCards(document.getElementById('deals-container'), sorted);
+    _updateSortButtons();
+}
+
+/**
+ * Met à jour l'apparence des boutons de tri.
+ * @private
+ */
+function _updateSortButtons() {
+    const { sortKey, sortDir } = DealsScannerState;
+    ['pct', 'kamas'].forEach(key => {
+        const btn = document.getElementById(`deals-sort-${key}`);
+        if (!btn) return;
+        const isActive = sortKey === key;
+        btn.classList.toggle('deals-sort-active', isActive);
+        const icon = btn.querySelector('.deals-sort-icon');
+        if (icon) icon.textContent = isActive ? (sortDir === 'desc' ? ' ↓' : ' ↑') : ' ↕';
+    });
+}
+
 /* =============================================================================
    RÉINITIALISATION DES PRIX
 ============================================================================= */
@@ -333,12 +455,12 @@ function _renderResSidebar({ sidebarId, listId, subId, compareFn, badgeLabel, re
  * après confirmation de l'utilisateur.
  */
 function resetCategoryPrices() {
-    const category = DealsScannerState.currentCategory;
-    const label    = category || 'toutes les catégories';
+    const sel   = DealsScannerState.selectedCategories;
+    const label = sel.size > 0 ? [...sel].join(', ') : 'toutes les catégories';
 
     const craftableItems = dbEquipments.filter(e =>
         e.ingredients?.length > 0 &&
-        (!category || (e.categorie || 'Inconnu') === category)
+        (sel.size === 0 || sel.has(e.categorie || 'Inconnu'))
     );
 
     if (craftableItems.length === 0) {
@@ -609,14 +731,18 @@ function scanMarket() {
 
     // Délai pour laisser le navigateur peindre le message avant le calcul
     setTimeout(() => {
-        const deals = _computeDeals();
-        const dealsToShow = _sortDealsByPriority(deals);
+        const rawDeals  = _computeDeals();
+        DealsScannerState.rawDeals = rawDeals;
+        const dealsToShow = _sortDealsByPriority(rawDeals);
+
+        DealsScannerState.lastDeals = dealsToShow;
 
         if (dealsToShow.length > 0) {
             _saveHistorySnapshot(dealsToShow);
         }
 
         _renderDealCards(container, dealsToShow);
+        _renderDealsLevelInfo(dealsToShow);
         _renderHighLevelResSidebar();
         _renderLowLevelResSidebar();
     }, SCAN_DELAY_MS);
@@ -630,7 +756,7 @@ function scanMarket() {
  * @private
  */
 function _computeDeals() {
-    const category    = DealsScannerState.currentCategory;
+    const sel     = DealsScannerState.selectedCategories;
     const dealsByMissing = {};
 
     const levelMinRaw = parseInt(document.getElementById('deals-level-min')?.value, 10);
@@ -640,7 +766,9 @@ function _computeDeals() {
 
     dbEquipments.forEach(item => {
         if (!item.ingredients?.length) return;
-        if (category && (item.categorie || 'Inconnu') !== category) return;
+
+        // Filtre par catégorie(s) sélectionnée(s)
+        if (sel.size > 0 && !sel.has(item.categorie || 'Inconnu')) return;
 
         // Filtre par niveau
         if (levelMin !== null && (item.niveau ?? 0) < levelMin) return;
@@ -655,6 +783,11 @@ function _computeDeals() {
         const analysis  = evaluateTree(item.id_itm, 1, new Set());
         const profit    = hdvPrice - analysis.cost;
         if (profit <= 0) return;
+
+        // Filtre bénéfice minimum
+        const minProfitRaw = parseInt(document.getElementById('deals-min-profit')?.value, 10);
+        const minProfit    = Number.isFinite(minProfitRaw) ? minProfitRaw : 0;
+        if (profit < minProfit) return;
 
         const profitPct = analysis.cost > 0 ? Math.round((profit / analysis.cost) * 100) : 0;
         const key       = analysis.missingCount;
@@ -680,13 +813,20 @@ function _computeDeals() {
  * @private
  */
 function _sortDealsByPriority(dealsByMissing) {
+    const { sortKey, sortDir, maxDeals } = DealsScannerState;
+    const dir = sortDir === 'desc' ? -1 : 1;
+
     const missingKeys  = Object.keys(dealsByMissing).map(Number).sort((a, b) => a - b);
     const dealsToShow  = [];
 
     for (const key of missingKeys) {
-        if (dealsToShow.length >= MAX_DEALS) break;
-        dealsByMissing[key].sort((a, b) => b.profitPct - a.profitPct);
-        const remaining = MAX_DEALS - dealsToShow.length;
+        if (dealsToShow.length >= maxDeals) break;
+        dealsByMissing[key].sort((a, b) => {
+            const va = sortKey === 'kamas' ? a.profit : a.profitPct;
+            const vb = sortKey === 'kamas' ? b.profit : b.profitPct;
+            return dir * (vb - va);
+        });
+        const remaining = maxDeals - dealsToShow.length;
         dealsToShow.push(...dealsByMissing[key].slice(0, remaining));
     }
 
@@ -705,7 +845,7 @@ function _saveHistorySnapshot(dealsToShow) {
 
     history.push({
         ts:       Date.now(),
-        category: DealsScannerState.currentCategory || 'Toutes',
+        category: [...DealsScannerState.selectedCategories].join(', ') || 'Toutes',
         top5:     dealsToShow.slice(0, 5).map(d => ({
             nom:       d.item.nom,
             profit:    d.profit,
@@ -917,4 +1057,33 @@ function _showHiddenDealsPanel() {
             }
         });
     });
+}
+
+/**
+ * Échappe les caractères HTML dangereux dans une chaîne.
+ * @param {string} str
+ * @returns {string}
+ * @private
+ */
+function _escapeHtml(str) {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+/**
+ * Échappe les caractères dangereux pour un attribut HTML.
+ * @param {string} str
+ * @returns {string}
+ * @private
+ */
+function _escapeAttr(str) {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
 }

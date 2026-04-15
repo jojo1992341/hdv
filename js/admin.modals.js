@@ -966,6 +966,8 @@ function _parseDropValue(raw) {
 function setupButtons() {
     document.getElementById('btn-export-equip').addEventListener('click', _exportJson);
     document.getElementById('btn-export-res').addEventListener('click', _exportJson);
+    document.getElementById('btn-reset-equip-prices').addEventListener('click', _resetEquipPrices);
+    document.getElementById('btn-reset-res-prices').addEventListener('click', _resetResPrices);
     _setupImportPrices();
     _setupImportEquipPrices();
 }
@@ -1095,6 +1097,12 @@ function _exportJson() {
         if (hasAnyLot) {
             _applyPricesToResource(res, lots);
         }
+
+        // Niveau : priorité localStorage → modèle
+        const storedNiveau = parseInt(localStorage.getItem('niveau_' + res.id_res), 10);
+        if (Number.isFinite(storedNiveau) && storedNiveau > 0) {
+            res.niveau = storedNiveau;
+        }
     });
 
     const fullData       = AdminState.fullData;
@@ -1112,4 +1120,55 @@ function _exportJson() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+}
+
+/* =============================================================================
+   RÉINITIALISATION DES PRIX
+============================================================================= */
+
+/**
+ * Supprime tous les prix HDV des équipements en localStorage.
+ * @private
+ */
+function _resetEquipPrices() {
+    const count = AdminState.equipments.length;
+    if (!confirm(`⚠️ Supprimer les prix HDV de ${count} équipement(s) ?\n\nCette action est irréversible.`)) {
+        return;
+    }
+
+    AdminState.equipments.forEach(eq => {
+        localStorage.removeItem('equip_' + eq.id_itm);
+        localStorage.removeItem('equip_' + eq.id_itm + '_ts');
+    });
+
+    applyFilterAndSortEquip();
+    alert('✅ Prix des équipements réinitialisés.');
+}
+
+/**
+ * Supprime tous les paliers de prix des ressources en localStorage.
+ * @private
+ */
+function _resetResPrices() {
+    const count = AdminState.resources.length;
+    if (!confirm(`⚠️ Supprimer tous les paliers de prix de ${count} ressource(s) ?\n\nCette action est irréversible.`)) {
+        return;
+    }
+
+    AdminState.resources.forEach(res => {
+        for (const lot of PRICE_LOTS) {
+            const key = priceKeyResLot(res.id_res, lot);
+            localStorage.removeItem(key);
+            localStorage.removeItem(key + '_ts');
+        }
+        // Prix unitaire de base
+        const baseKey = priceKeyRes(res.id_res);
+        localStorage.removeItem(baseKey);
+        localStorage.removeItem(baseKey + '_ts');
+        // Prix moyen (Trading) — mais on conserve le niveau
+        localStorage.removeItem('avg_' + res.id_res);
+    });
+
+    applyFilterAndSortRes();
+    alert('✅ Prix des ressources réinitialisés.');
 }

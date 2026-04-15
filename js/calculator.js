@@ -9,10 +9,11 @@
  *   - Calcul et affichage des runes attendues par brisage
  *   - Calcul du seuil de rentabilité et de la meilleure stratégie de focus
  *
- * @depends constants.js  — EFFECT_MAPPING
- * @depends storage.js    — getStoredPrice, setStoredPrice, priceKeyRes,
- *                          priceKeyEquip, priceKeyRune
- * @depends imageCache.js — getIcon, copyToClipboard
+ * @depends constants.js       — EFFECT_MAPPING
+ * @depends storage.js         — getStoredPrice, setStoredPrice, priceKeyRes,
+ *                               priceKeyEquip, priceKeyRune
+ * @depends imageCache.js      — getIcon, copyToClipboard
+ * @depends focusStrategy.js   — calcPdbs, calcBestFocusStrategy
  */
 
 /* =============================================================================
@@ -37,6 +38,82 @@ const CalculatorState = {
      */
     itemJets: {},
 };
+
+/* =============================================================================
+   TIER HELPERS
+============================================================================= */
+
+const TIER_MULTIPLIERS = { x1: 1, x10: 10, x100: 100, x1000: 1000 };
+
+/**
+ * Retourne le prix unitaire d'une ressource en fonction du palier actif.
+ * Si le palier est x10/x100/x1000, lit le prix du lot et divise par le multiplicateur.
+ * Fallback sur le prix de base si aucun prix de lot n'existe.
+ *
+ * @param {number} id - ID de la ressource.
+ * @returns {number} Prix unitaire.
+ */
+function _getUnitPrice(id) {
+    const tier = getPriceTier();
+    if (tier === 'x1') return getStoredPrice(priceKeyRes(id));
+
+    const mult = TIER_MULTIPLIERS[tier];
+    const lotPrice = getStoredPriceLot(id, tier);
+    if (lotPrice !== null && lotPrice > 0) return Math.round(lotPrice / mult);
+
+    // Fallback: prix de base
+    return getStoredPrice(priceKeyRes(id));
+}
+
+/**
+ * Sauvegarde un prix dans le bon palier et synchronise le prix unitaire.
+ *
+ * @param {number} id - ID de la ressource.
+ * @param {number} value - Prix saisi par l'utilisateur (prix du lot).
+ */
+function _setTierPrice(id, value) {
+    const tier = getPriceTier();
+    const mult = TIER_MULTIPLIERS[tier];
+
+    // Sauvegarde dans le palier actif
+    setStoredPriceLot(id, tier, value);
+
+    // Synchronise le prix unitaire vers la clé de base
+    const unitPrice = Math.round(value / mult);
+    setStoredPrice(priceKeyRes(id), unitPrice);
+}
+
+/* =============================================================================
+   SÉLECTEUR DE PALIER
+============================================================================= */
+
+/**
+ * Initialise les boutons de sélection de palier (calculateur + brisage).
+ * Lit le palier depuis localStorage et met à jour l'état actif des boutons.
+ */
+function setupTierSelector() {
+    document.querySelectorAll('.tier-btn').forEach(btn => {
+        // Marque le bouton actif initial
+        if (btn.dataset.tier === getPriceTier()) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+
+        btn.addEventListener('click', () => {
+            const tier = btn.dataset.tier;
+            setPriceTier(tier);
+
+            // Met à jour tous les boutons (calculateur + brisage)
+            document.querySelectorAll('.tier-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.tier === tier);
+            });
+
+            // Rafraîchit les prix affichés
+            if (typeof renderRecipe === 'function') renderRecipe();
+        });
+    });
+}
 
 /* =============================================================================
    RÉFÉRENCES AUX DONNÉES GLOBALES (injectées par app.js au démarrage)
@@ -102,7 +179,18 @@ function setupSearch() {
  * coefficient de brisage, multiplicateur de craft, mode récursif, prix HDV.
  */
 function setupGlobalListeners() {
-    document.getElementById('item-coeff').addEventListener('input', updateCalculations);
+    const coeffInput = document.getElementById('item-coeff');
+    coeffInput.addEventListener('input', () => {
+        updateCalculations();
+        // Sauvegarde le coeff par équipement
+        if (CalculatorState.selectedItem) {
+            const coeff = coeffInput.value || '75';
+            localStorage.setItem('coeff_' + CalculatorState.selectedItem.id_itm, coeff);
+        }
+        // Met à jour l'affichage du coefficient dans le scanner
+        const display = document.getElementById('smash-coeff-display');
+        if (display) display.textContent = (coeffInput.value || '75') + ' %';
+    });
 
     document.getElementById('craft-multiplier').addEventListener('input', (e) => {
         const multiplier = parseInt(e.target.value, 10) || 1;
@@ -161,6 +249,10 @@ function _renderItemHeader(item) {
     document.getElementById('item-level').textContent = `Niveau ${item.niveau}`;
     document.getElementById('item-icon').src = getIcon(item.icone || '');
     document.getElementById('item-hdv-price').value = getStoredPrice(priceKeyEquip(item.id_itm));
+
+    // Restaure le coefficient par équipement (défaut 75)
+    const savedCoeff = localStorage.getItem('coeff_' + item.id_itm) || '75';
+    document.getElementById('item-coeff').value = savedCoeff;
 
     // Bouton "Ajouter au panier"
     const cartBtn = document.getElementById('calc-btn-add-to-cart');
@@ -243,7 +335,6 @@ function renderRecipe() {
     item.ingredients.forEach(ing => _buildRecipeNode(ing, 0, multiplier, useRecursive, containerSingle, containerMulti));
 
     _syncPriceInputs('single-price', 'multi-price');
-    _syncPriceInputs('multi-price', 'single-price');
 }
 
 /**
@@ -262,7 +353,7 @@ function _buildRecipeNode(ing, depth, mult, useRecursive, containerSingle, conta
 
     const craftableItem = dbEquipments.find(e => e.id_itm === ing.id_res);
     const isCraftable   = !!(craftableItem?.ingredients?.length);
-    const price         = getStoredPrice(priceKeyRes(res.id_res));
+    const price         = _getUnitPrice(res.id_res);
 
     _appendRecipeRow(containerSingle, ing, res, depth, ing.quantite, price, isCraftable, false);
     _appendRecipeRow(containerMulti,  ing, res, depth, ing.quantite * mult, price, isCraftable, true);
@@ -329,7 +420,7 @@ function _syncPriceInputs(sourceClass, targetClass) {
             const id  = e.target.dataset.id;
             document.querySelectorAll(`.${sourceClass}[data-id="${id}"]`).forEach(i => i.value = val);
             document.querySelectorAll(`.${targetClass}[data-id="${id}"]`).forEach(i => i.value = val);
-            setStoredPrice(priceKeyRes(id), val);
+            _setTierPrice(id, val);
             updateCalculations();
         });
     });
@@ -433,7 +524,7 @@ function prepareRunesData() {
             sign:            mapping.sign,
         });
 
-        CalculatorState.itemJets[index] = Math.ceil((actualMin + actualMax) / 2);
+        CalculatorState.itemJets[index] = Math.floor((actualMin + actualMax) / 2);
     });
 }
 
@@ -572,24 +663,19 @@ function updateCalculations() {
 
 /**
  * Calcule les Points De Brisage (PDB) pour chaque effet valide.
+ * Utilise la fonction utilitaire calcPdbs de focusStrategy.js.
  *
  * @param {number} level - Niveau de l'équipement.
  * @returns {Object.<number, number>} PDB indexé par index d'effet.
  */
 function _calcPdbs(level) {
-    const pdbs = {};
-    CalculatorState.validEffects.forEach(eff => {
-        const jet = CalculatorState.itemJets[eff.index];
-        let pdb   = (3 * jet * level * eff.weightUnite / 200) + 1;
-        if (eff.sign === -1) pdb = (pdb / 10) * -1;
-        pdbs[eff.index] = pdb;
-    });
-    return pdbs;
+    return calcPdbs(CalculatorState.validEffects, level, CalculatorState.itemJets);
 }
 
 /**
  * Calcule les gains kamas attendus en stratégie base et focus pour chaque rune.
  * Met à jour les colonnes base/focus du tableau des runes.
+ * Utilise calcBestFocusStrategy pour la logique de calcul, puis affiche les résultats.
  *
  * @param {Object.<number, number>} pdbs     - PDB par index d'effet.
  * @param {number}                  totalPdb - Somme totale des PDB positifs.
@@ -615,6 +701,7 @@ function _calcStrategies(pdbs, totalPdb, coeff) {
         baseExpected     += baseRunesFloat * price;
         baseMaxPotential += Math.ceil(baseRunesFloat)  * price;
 
+        // Utilise la même formule que calcBestFocusStrategy
         const focusRunesFloat = ((pdbs[eff.index] + 0.5 * (totalPdb - pdbs[eff.index])) / eff.weightRuneNormal) * coeff;
 
         document.getElementById(`focus-runes-${eff.index}`).innerHTML = _formatRuneText(focusRunesFloat);
@@ -702,9 +789,13 @@ function displayBestStrategy(bestStrategy, totalRecipePrice) {
         : `Focus les runes <strong>${bestStrategy.name}</strong>`;
 
     const colorClass = bestStrategy.expected >= totalRecipePrice ? 'success-text' : 'danger-text';
+    const pctGain    = totalRecipePrice > 0
+        ? Math.round(((bestStrategy.guaranteed - totalRecipePrice) / totalRecipePrice) * 100)
+        : null;
+    const gainVsCraft = pctGain !== null ? ` <span class="gain-vs-craft">(${pctGain > 0 ? '+' : ''}${pctGain}% vs craft)</span>` : '';
 
     const resultText = bestStrategy.guaranteed > 0
-        ? `<strong class="${colorClass}">${bestStrategy.guaranteed} K 100% garantis</strong>
+        ? `<strong class="${colorClass}">${bestStrategy.guaranteed} K 100% garantis</strong>${gainVsCraft}
            <br><span style="font-size:0.9em; color:var(--text-muted);">(Max Potentiel : ${bestStrategy.maxPotential} K)</span>`
         : `<strong class="${colorClass}">${bestStrategy.maxPotential} K au maximum</strong>
            <br><span style="font-size:0.9em; color:var(--text-muted);">(Rien n'est garanti à 100%)</span>`;

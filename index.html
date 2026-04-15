@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>⚗ Dofus Runes — Craft & Brisage</title>
+    <title>💠 Dofus Utility — Trading & Data</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/tokens.css">
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -17,8 +17,8 @@
          ========================================== -->
     <div id="loading-screen">
         <div class="loading-inner">
-            <div class="loading-sigil">⚗</div>
-            <h1 class="loading-title">Arcane Forge</h1>
+            <div class="loading-sigil">💠</div>
+            <h1 class="loading-title">Dofus Utility</h1>
             <p class="loading-subtitle">Chargement des ressources...</p>
             <div class="loading-bar-track">
                 <div class="loading-bar-fill" id="loading-bar-fill"></div>
@@ -124,6 +124,16 @@
             <section class="recipe-section">
                 <div class="recipe-split-container">
 
+                    <div class="recipe-tier-selector">
+                        <label class="tier-label">Palier :</label>
+                        <div class="tier-buttons">
+                            <button class="tier-btn active" data-tier="x1">×1</button>
+                            <button class="tier-btn" data-tier="x10">×10</button>
+                            <button class="tier-btn" data-tier="x100">×100</button>
+                            <button class="tier-btn" data-tier="x1000">×1000</button>
+                        </div>
+                    </div>
+
                     <div class="recipe-column">
                         <div class="column-header">
                             <h2>Coût du craft unitaire (<span id="total-recipe-price" class="kamas-text">0 K</span>)</h2>
@@ -177,15 +187,12 @@
                 <div>
                     <h3 class="smash-scanner-title">💥 Scanner de Brisage</h3>
                     <p class="smash-scanner-subtitle">
-                        Classement des items les plus rentables à briser,
-                        basé sur vos prix de runes et le coefficient entré.
+                        Classement des items rentables selon le coefficient actuel
+                        (<span id="smash-coeff-display">-- %</span>).
+                        Plus le seuil de rentabilité est bas, plus l'item est haut dans le classement.
                     </p>
                 </div>
                 <div class="smash-scanner-controls">
-                    <label for="smash-scan-coeff" class="smash-coeff-label">Coefficient (%)</label>
-                    <input type="number" id="smash-scan-coeff"
-                           value="75" min="1" max="4000"
-                           class="smash-coeff-input">
                     <div class="smash-level-filter">
                         <label class="smash-coeff-label">Niv.</label>
                         <input type="number" id="smash-level-min" class="smash-coeff-input"
@@ -204,9 +211,37 @@
                             Non dropable uniquement
                         </label>
                     </div>
+                    <div class="smash-price-source">
+                        <span class="smash-coeff-label">Coût d'acquisition :</span>
+                        <label class="smash-radio-label">
+                            <input type="radio" name="smash-price-src" value="both" checked>
+                            HDV ou Craft (moins cher)
+                        </label>
+                        <label class="smash-radio-label">
+                            <input type="radio" name="smash-price-src" value="hdv">
+                            HDV uniquement
+                        </label>
+                        <label class="smash-radio-label">
+                            <input type="radio" name="smash-price-src" value="craft">
+                            Craft uniquement
+                        </label>
+                    </div>
+                    <div class="smash-tier-selector-inline">
+                        <span class="smash-coeff-label">Palier :</span>
+                        <div class="tier-buttons">
+                            <button class="tier-btn active" data-tier="x1">×1</button>
+                            <button class="tier-btn" data-tier="x10">×10</button>
+                            <button class="tier-btn" data-tier="x100">×100</button>
+                            <button class="tier-btn" data-tier="x1000">×1000</button>
+                        </div>
+                    </div>
                     <button id="btn-smash-show-hidden" class="btn-smash-show-hidden"
                             title="Voir et gérer les items cachés du scanner">
                         👁 Cachés
+                    </button>
+                    <button id="btn-smash-cart-all" class="btn-smash-cart-all"
+                            title="Ajouter tous les résultats au panier">
+                        🛒 Tout au panier
                     </button>
                     <button id="btn-smash-scan" class="btn-smash-scan">
                         💥 Scanner les brisages
@@ -233,11 +268,10 @@
                 <p>Compare le coût de craft optimal (achat ou sous-craft) avec le prix de revente HDV enregistré.</p>
                 <p class="deals-warning">📊 Classement : d'abord les crafts sans prix manquant, puis 1 manquant, 2, etc. Les crafts avec prix manquants affichent un badge rouge.</p>
                 <div id="deals-res-level-info" class="deals-res-level-info hidden"></div>
+                <div id="deals-top50-level-info" class="deals-res-level-info hidden"></div>
             </div>
             <div class="deals-header-actions">
-                <select id="filter-category-deals" class="deals-category-select">
-                    <option value="">Toutes les catégories</option>
-                </select>
+                <div id="filter-category-deals-wrapper"></div>
                 <div class="deals-level-filter">
                     <label for="deals-level-min">Niv.</label>
                     <input type="number" id="deals-level-min" class="deals-level-input"
@@ -245,6 +279,25 @@
                     <span>—</span>
                     <input type="number" id="deals-level-max" class="deals-level-input"
                            min="1" max="200" placeholder="max" title="Niveau maximum">
+                </div>
+                <div class="deals-level-filter">
+                    <label for="deals-min-profit">Bénéf. min (K)</label>
+                    <input type="number" id="deals-min-profit" class="deals-level-input"
+                           min="0" placeholder="0" title="Bénéfice minimum en kamas">
+                </div>
+                <div class="deals-sort-btns">
+                    <label for="deals-max-deals" class="deals-max-deals-label">Max :</label>
+                    <input type="number" id="deals-max-deals" class="deals-level-input"
+                           value="50" min="1" max="500" title="Nombre maximum de bons plans affichés">
+                    <span class="deals-sort-label">Trier :</span>
+                    <button id="deals-sort-pct" class="deals-sort-btn deals-sort-active"
+                            title="Trier par bénéfice en %">
+                        % <span class="deals-sort-icon">↓</span>
+                    </button>
+                    <button id="deals-sort-kamas" class="deals-sort-btn"
+                            title="Trier par bénéfice en kamas">
+                        K <span class="deals-sort-icon">↕</span>
+                    </button>
                 </div>
                 <button id="btn-refresh-deals" class="btn-refresh">🔄 Lancer l'analyse du marché</button>
                 <button id="btn-deals-show-hidden" class="btn-reset-prices"
@@ -261,15 +314,15 @@
         <div class="deals-layout">
 
             <!-- ── SIDEBAR GAUCHE : ressources au-dessus du niveau max ── -->
-            <aside class="deals-res-sidebar hidden" id="deals-res-sidebar-high">
+            <aside class="deals-res-sidebar hidden" id="deals-res-sidebar-low">
                 <div class="deals-res-sidebar-header">
-                    <h4>📦 Ressources haut niveau</h4>
-                    <p class="deals-res-sidebar-sub" id="deals-res-sidebar-high-sub">
-                        Niveau > max sélectionné
+                    <h4>📦 Ressources bas niveau</h4>
+                    <p class="deals-res-sidebar-sub" id="deals-res-sidebar-low-sub">
+                        Niveau &lt; min sélectionné
                     </p>
                 </div>
-                <div id="deals-res-sidebar-list-high" class="deals-res-sidebar-list">
-                    <!-- Peuplé par _renderHighLevelResSidebar() -->
+                <div id="deals-res-sidebar-list-low" class="deals-res-sidebar-list">
+                    <!-- Peuplé par _renderLowLevelResSidebar() -->
                 </div>
             </aside>
 
@@ -281,15 +334,15 @@
             </div>
 
             <!-- ── SIDEBAR DROITE : ressources en dessous du niveau min ── -->
-            <aside class="deals-res-sidebar hidden" id="deals-res-sidebar-low">
+            <aside class="deals-res-sidebar hidden" id="deals-res-sidebar-high">
                 <div class="deals-res-sidebar-header">
-                    <h4>📦 Ressources bas niveau</h4>
-                    <p class="deals-res-sidebar-sub" id="deals-res-sidebar-low-sub">
-                        Niveau &lt; min sélectionné
+                    <h4>📦 Ressources haut niveau</h4>
+                    <p class="deals-res-sidebar-sub" id="deals-res-sidebar-high-sub">
+                        Niveau > max sélectionné
                     </p>
                 </div>
-                <div id="deals-res-sidebar-list-low" class="deals-res-sidebar-list">
-                    <!-- Peuplé par _renderLowLevelResSidebar() -->
+                <div id="deals-res-sidebar-list-high" class="deals-res-sidebar-list">
+                    <!-- Peuplé par _renderHighLevelResSidebar() -->
                 </div>
             </aside>
 
@@ -696,6 +749,7 @@
     <script src="js/imageCache.js"></script>
     <script src="js/navigation.js"></script>
     <script src="js/hiddenItems.js"></script>
+    <script src="js/focusStrategy.js"></script>
     <script src="js/calculator.js"></script>
     <script src="js/dealsScanner.js"></script>
     <script src="js/dashboard.js"></script>

@@ -192,6 +192,11 @@ function _getResSortValues(a, b, column) {
             return [getResourceUsageCount(a.id_res), getResourceUsageCount(b.id_res)];
         case 'nom':
             return [(a.nom || '').toLowerCase(), (b.nom || '').toLowerCase()];
+        case 'niveau': {
+            const valA = parseInt(localStorage.getItem('niveau_' + a.id_res), 10) || a.niveau || 0;
+            const valB = parseInt(localStorage.getItem('niveau_' + b.id_res), 10) || b.niveau || 0;
+            return [valA, valB];
+        }
         case 'taux_drop': {
             // null → toujours en dernier (représenté par Infinity côté ascendant)
             const valA = a.taux_drop != null ? parseFloat(a.taux_drop) : Infinity;

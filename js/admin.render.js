@@ -221,6 +221,8 @@ function _buildResRow(res) {
     const isSelected = AdminState.selectedRes.has(res.id_res);
     const usageCount = getResourceUsageCount(res.id_res);
     const safeName   = _escapeName(res.nom);
+    const niveauRes  = parseInt(localStorage.getItem('niveau_' + res.id_res), 10)
+        || res.niveau || '—';
 
     // Taux de drop : priorité localStorage → JSON → vide
     const storedDrop = localStorage.getItem('drop_' + res.id_res);
@@ -230,6 +232,12 @@ function _buildResRow(res) {
 
     // 4 paliers de prix depuis le localStorage
     const lots = getAllPriceLots(res.id_res);
+
+    // Persiste le niveau en localStorage s'il vient du JSON et n'y est pas encore
+    const storedNiveau = parseInt(localStorage.getItem('niveau_' + res.id_res), 10);
+    if (!Number.isFinite(storedNiveau) && Number.isFinite(res.niveau) && res.niveau > 0) {
+        localStorage.setItem('niveau_' + res.id_res, res.niveau);
+    }
 
     // Génère les 4 cellules de prix
     const priceCells = RES_PRICE_LOTS.map(({ lot, label }) => {
@@ -259,6 +267,11 @@ function _buildResRow(res) {
         <td><strong class="copyable-name"
                     onclick="copyToClipboard('${safeName}', this)"
                     title="Cliquer pour copier">${res.nom}</strong></td>
+        <td>
+            <input type="number" class="res-level-input admin-price-input"
+                   data-id="${res.id_res}" value="${Number.isFinite(niveauRes) ? niveauRes : ''}"
+                   min="0" placeholder="—">
+        </td>
         <td>${usageCount} recette(s)</td>
         <td>
             <input type="text" class="res-drop-input admin-price-input"
@@ -286,6 +299,16 @@ function _attachResRowListeners(tr, resId) {
         e.target.checked ? AdminState.selectRes(resId) : AdminState.deselectRes(resId);
         updateMassDeleteUI();
         checkAllResToggleState();
+    });
+
+    // ── Niveau ─────────────────────────────────────────────────────────────
+    const levelInput = tr.querySelector('.res-level-input');
+    _attachPriceInputListeners(levelInput, (val) => {
+        if (val === '') {
+            localStorage.removeItem('niveau_' + resId);
+        } else {
+            localStorage.setItem('niveau_' + resId, val);
+        }
     });
 
     // ── Taux de drop ───────────────────────────────────────────────────────
