@@ -1,0 +1,140 @@
+/* ============================================================
+   DOFUS RUNES — ARCANE FORGE — DESIGN TOKENS v2
+   Source unique de vérité pour toute la charte graphique.
+   Chargé en premier par index.html ET admin.html.
+
+   v2 — "Arsenal Terminal" : palette affinée, tokens d'animation,
+   hiérarchie d'élévation, suppression des alias legacy.
+   ============================================================ */
+
+/* ── POLICES ────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+/* ── VARIABLES GLOBALES ─────────────────────────────────────── */
+:root {
+
+  /* ── Fonds (Dark Navy-Charcoal) ─────────────────────────── */
+  --bg:          #0A0E17;
+  --bg-surface:  #111827;
+  --bg-raised:   #1a2234;
+  --bg-overlay:  #243049;
+  --bg-input:    #0c1120;
+  --bg-card:     #111827;
+
+  /* ── Textes ──────────────────────────────────────────────── */
+  --tx:          #CBD5E1;
+  --tx-dim:      #64748B;
+  --tx-bright:   #F1F5F9;
+  --tx-faint:    #334155;
+
+  /* ── Accent Primaire (Steel Cyan — Action Principale) ────── */
+  --azur:         #22D3EE;
+  --azur-hi:      #67E8F9;
+  --azur-dim:     rgba(34, 211, 238, 0.10);
+  --azur-glow:    rgba(34, 211, 238, 0.20);
+  --azur-line:    rgba(34, 211, 238, 0.25);
+  --azur-strong:  rgba(34, 211, 238, 0.50);
+  --azur-hover:   #67E8F9;
+
+  /* ── Accent Secondaire (Ambre — Prix/Économie) ───────────── */
+  --amber:        #F59E0B;
+  --amber-hi:     #FBBF24;
+  --amber-deep:   #D97706;
+  --amber-dim:    rgba(245, 158, 11, 0.10);
+  --amber-glow:   rgba(245, 158, 11, 0.20);
+  --amber-line:   rgba(245, 158, 11, 0.25);
+  --amber-strong: rgba(245, 158, 11, 0.50);
+
+  /* ── Statut Succès (Émeraude) ────────────────────────────── */
+  --jade:         #34D399;
+  --jade-hi:      #6EE7B7;
+  --jade-dim:     rgba(52, 211, 153, 0.10);
+  --jade-glow:    rgba(52, 211, 153, 0.20);
+  --jade-line:    rgba(52, 211, 153, 0.25);
+  --jade-strong:  rgba(52, 211, 153, 0.50);
+
+  /* ── Statut Erreur (Corail) ──────────────────────────────── */
+  --coral:        #F87171;
+  --coral-hi:     #FCA5A5;
+  --coral-dim:    rgba(248, 113, 113, 0.10);
+  --coral-glow:   rgba(248, 113, 113, 0.20);
+  --coral-line:   rgba(248, 113, 113, 0.25);
+  --coral-strong: rgba(248, 113, 113, 0.50);
+
+  /* ── Accent Neutre (Acier — UI Secondaire) ───────────────── */
+  --steel:        #64748B;
+  --steel-hi:     #94A3B8;
+  --steel-dim:    rgba(100, 116, 139, 0.10);
+  --steel-line:   rgba(100, 116, 139, 0.25);
+
+  /* ── Rangements / Classement ─────────────────────────────── */
+  --rank-gold:    #FBBF24;
+  --rank-silver:  #94A3B8;
+  --rank-bronze:  #B45309;
+
+  /* ── Scores / Verdicts ───────────────────────────────────── */
+  --score-good:   #34D399;
+  --score-risky:  #FBBF24;
+  --score-bad:    #F87171;
+
+  /* ── Bordures ────────────────────────────────────────────── */
+  --brd:          #1E293B;
+  --brd-hi:       #334155;
+  --brd-bright:   #475569;
+
+  /* ── Ombres (Élévation) ─────────────────────────────────── */
+  --sh-none:  none;
+  --sh-sm:    0 1px 4px rgba(0, 0, 0, 0.35);
+  --sh-md:    0 4px 12px rgba(0, 0, 0, 0.45);
+  --sh-lg:    0 8px 24px rgba(0, 0, 0, 0.55);
+  --sh-xl:    0 16px 48px rgba(0, 0, 0, 0.65);
+  --sh-amber: 0 0 16px rgba(245, 158, 11, 0.12);
+  --sh-jade:  0 0 16px rgba(52, 211, 153, 0.12);
+  --sh-azur:  0 0 16px rgba(34, 211, 238, 0.12);
+
+  /* ── Typographies ────────────────────────────────────────── */
+  --font-display: 'Inter', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+  --font-ui:      'Inter', system-ui, sans-serif;
+
+  /* ── Géométrie ───────────────────────────────────────────── */
+  --r:      6px;
+  --r-sm:   4px;
+  --r-lg:   10px;
+  --r-xl:   14px;
+  --r-2xl:  18px;
+  --r-pill: 9999px;
+
+  /* ── Animation ───────────────────────────────────────────── */
+  --ease-out:       cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:    cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast:  150ms;
+  --duration-normal: 250ms;
+  --duration-slow:  400ms;
+
+  /* ── Focus Ring ──────────────────────────────────────────── */
+  --ring-focus: 2px solid var(--azur-dim);
+
+  /* ── Arrière-plan atmosphérique ──────────────────────────── */
+  --bg-vignette: radial-gradient(ellipse at 50% 20%, rgba(20, 30, 50, 0.5) 0%, transparent 70%);
+}
+
+/* ── RESET ──────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html { scroll-behavior: smooth; }
+
+/* ── SCROLLBAR ──────────────────────────────────────────────── */
+::-webkit-scrollbar             { width: 4px; height: 4px; }
+::-webkit-scrollbar-track       { background: transparent; }
+::-webkit-scrollbar-thumb       { background: var(--brd-bright); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--tx-faint); }
+
+/* ── UTILITAIRES PARTAGÉS ───────────────────────────────────── */
+.hidden { display: none !important; }
+.mt-10  { margin-top: 10px; }
