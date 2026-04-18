@@ -22,9 +22,10 @@
 const SMASH_MAX_RESULTS = 50;
 
 const SmashState = {
-    lastResults: null,
-    sortKey: 'threshold',
-    sortDir: 'asc',
+    lastResults:  null,
+    sortKey:      'threshold',
+    sortDir:      'asc',
+    filterRune:   '',          // Filtre par rune ciblée
 };
 
 const SMASH_COLUMNS = [
@@ -54,6 +55,79 @@ function setupBrisageScanner() {
 
     document.getElementById('btn-smash-cart-all')
         ?.addEventListener('click', _cartAllSmashResults);
+
+    // Filtre par rune
+    document.getElementById('smash-filter-rune')
+        ?.addEventListener('change', e => { SmashState.filterRune = e.target.value; });
+
+    _populateRuneFilter();
+}
+
+/* =============================================================================
+   FILTRE PAR RUNE — PEUPLEMENT DU SELECT
+============================================================================= */
+
+/**
+ * Peuple le sélecteur de rune avec le ratio K/poids (rentabilité).
+ * Deux groupes : runes avec prix (triées par K/poids décroissant)
+ * puis runes sans prix renseigné.
+ * Appelée au démarrage et avant chaque scan pour être à jour.
+ */
+function _populateRuneFilter() {
+    const select = document.getElementById('smash-filter-rune');
+    if (!select || !dbRunesWeights?.length) return;
+
+    const fmt = n => n.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+
+    const runes = dbRunesWeights.map(rw => {
+        const price       = getStoredPrice(priceKeyRune(rw.nom));
+        const poids       = parseFloat(rw.poids_rune_normal) || 1;
+        const rentabilite = price > 0 ? Math.round(price / poids) : 0;
+        return {
+            nom:  rw.nom,
+            abbr: dbRuneNames[rw.nom] || rw.nom,
+            price, poids, rentabilite,
+        };
+    }).sort((a, b) =>
+        b.rentabilite - a.rentabilite || a.abbr.localeCompare(b.abbr, 'fr')
+    );
+
+    const current      = select.value;
+    const withPrice    = runes.filter(r => r.price > 0);
+    const withoutPrice = runes.filter(r => r.price <= 0);
+
+    select.innerHTML = '<option value="">Toutes les runes</option>';
+
+    if (withPrice.length) {
+        const grp = document.createElement('optgroup');
+        grp.label = '💰 Avec prix — triées par K/poids';
+        withPrice.forEach(r => {
+            const opt       = document.createElement('option');
+            opt.value       = r.nom;
+            opt.textContent = `${r.abbr}  ·  ${fmt(r.rentabilite)} K/poids  ·  ${fmt(r.price)} K`;
+            grp.appendChild(opt);
+        });
+        select.appendChild(grp);
+    }
+
+    if (withoutPrice.length) {
+        const grp = document.createElement('optgroup');
+        grp.label = '— Sans prix renseigné';
+        withoutPrice
+            .sort((a, b) => a.abbr.localeCompare(b.abbr, 'fr'))
+            .forEach(r => {
+                const opt       = document.createElement('option');
+                opt.value       = r.nom;
+                opt.textContent = r.abbr;
+                grp.appendChild(opt);
+            });
+        select.appendChild(grp);
+    }
+
+    // Restaure la sélection courante si elle est toujours dans la liste
+    if (current && [...select.options].some(o => o.value === current)) {
+        select.value = current;
+    }
 }
 
 /* =============================================================================
@@ -66,7 +140,9 @@ function _runSmashScan() {
     btn.textContent = '⏳ Analyse en cours...';
 
     setTimeout(() => {
-        // Coeff = valeur actuelle du calculateur
+        // Rafraîchit K/poids avec les prix actuellement stockés
+        _populateRuneFilter();
+
         const coeffPct = parseFloat(document.getElementById('item-coeff')?.value) || 75;
         const coeff    = Math.max(1, Math.min(4000, coeffPct)) / 100;
 
@@ -99,7 +175,6 @@ function _cartAllSmashResults() {
         }
     });
 
-    // Feedback visuel sur le bouton
     const btn = document.getElementById('btn-smash-cart-all');
     const originalText = btn.textContent;
     btn.textContent = `✅ ${addedCount} ajoutés`;
@@ -124,10 +199,10 @@ function _computeSmashRankings(coeff, coeffPct) {
 
     const filterNoPaPmPo = document.getElementById('smash-filter-no-papmpo')?.checked ?? false;
     const filterNonDrop  = document.getElementById('smash-filter-nondrop')?.checked  ?? false;
+    const filterRune     = SmashState.filterRune;
 
     const FORBIDDEN_EFFECT_IDS = new Set([111, 128, 117, 182]);
 
-    // Ensemble des équipements dropables
     const droppableEquipIds = new Set();
     if (filterNonDrop) {
         dbMonstres.forEach(monstre => {
@@ -149,14 +224,24 @@ function _computeSmashRankings(coeff, coeffPct) {
             if (item.stats.some(stat => FORBIDDEN_EFFECT_IDS.has(stat.id_effet))) return;
         }
 
+        // ── Filtre par rune ciblée ─────────────────────────────────────────
+        if (filterRune) {
+            const hasRune = item.stats.some(stat => {
+                const m = EFFECT_MAPPING[stat.id_effet];
+                return m && m.name === filterRune && m.sign === 1;
+            });
+            if (!hasRune) return;
+        }
+
         const effects = _buildEffectsForItem(item);
         if (!effects.length) return;
 
-        const pdbs    = calcPdbs(effects, item.niveau);
+        const pdbs     = calcPdbs(effects, item.niveau);
         const totalPdb = Math.max(0, Object.values(pdbs).reduce((s, v) => s + v, 0));
         if (totalPdb <= 0) return;
 
-        const { expectedBase, runeLines, missingPrices, bestFocus } = _calcItemBaseGain(effects, pdbs, totalPdb, coeff);
+        const { expectedBase, runeLines, missingPrices, bestFocus } =
+            _calcItemBaseGain(effects, pdbs, totalPdb, coeff);
         if (expectedBase <= 0) return;
 
         if (!item.ingredients?.length || typeof evaluateTree !== 'function') return;
@@ -166,7 +251,6 @@ function _computeSmashRankings(coeff, coeffPct) {
 
         const hdvPrice = getStoredPrice(priceKeyEquip(item.id_itm));
 
-        // ── Filtre source prix ────────────────────────────────────────────
         const priceSrc = document.querySelector('input[name="smash-price-src"]:checked')?.value ?? 'both';
         let bestAcqCost = null;
         let acqSource   = null;
@@ -192,18 +276,12 @@ function _computeSmashRankings(coeff, coeffPct) {
             ? Math.round((expectedBase - bestAcqCost) / bestAcqCost * 100)
             : null;
 
-        // ── Calcul du SEUIL DE RENTABILITÉ ────────────────────────────────
-        // thresholdVal = coefficient minimum (en %) pour que le brisage soit rentable
-        // Formule : coût_achat / (gain_runes / coeff_actuel) * 100
-        // Utilise le gain de la meilleure stratégie (base ou focus), comme la carte dashboard
-        let thresholdVal = null;
-        let smashesFromThreshold = null;
+        let thresholdVal          = null;
+        let smashesFromThreshold  = null;
 
-        // Le gain estimé est celui de la meilleure stratégie (comme dans le calculateur)
         const bestStrategyExpected = bestFocus ? bestFocus.expected : expectedBase;
 
         if (bestAcqCost > 0 && bestStrategyExpected > 0) {
-            // gain_au_coeff_100 = expectedBest / coeff (ramené à coeff=1.0)
             const gainAt100 = bestStrategyExpected / coeff;
             thresholdVal    = Math.ceil((bestAcqCost / gainAt100) * 100);
             thresholdVal    = Math.max(1, Math.min(4000, thresholdVal));
@@ -215,8 +293,6 @@ function _computeSmashRankings(coeff, coeffPct) {
             }
         }
 
-        // On n'inclut que les items dont le seuil est calculable et ≤ coeff actuel
-        // (i.e. déjà rentables au coeff actuel)
         if (thresholdVal === null || thresholdVal > coeffPct) return;
 
         results.push({
@@ -233,12 +309,10 @@ function _computeSmashRankings(coeff, coeffPct) {
             runeLines,
             missingPrices,
             bestFocus,
-          // Rentabilite = prix / poids (plus eleve = plus rentable)
-          bestRentabilite: runeLines.reduce((max, r) => Math.max(max, r.rentabilite || 0), 0),
+            bestRentabilite: runeLines.reduce((max, r) => Math.max(max, r.rentabilite || 0), 0),
         });
     });
 
-    // Tri par seuil ascendant (seuil le plus bas = le plus rentable)
     return results
         .sort((a, b) => (a.thresholdVal ?? 9999) - (b.thresholdVal ?? 9999))
         .slice(0, SMASH_MAX_RESULTS);
@@ -276,33 +350,27 @@ function _buildEffectsForItem(item) {
 function _calcItemBaseGain(effects, pdbs, totalPdb, coeff) {
     const { baseKamas, bestFocus } = calcBestFocusStrategy(effects, pdbs, totalPdb, coeff);
 
-    // Reconstruire runeLines pour l'affichage
-    const runeLines = [];
+    const runeLines   = [];
     let missingPrices = 0;
 
     effects.forEach(eff => {
         if (eff.sign === -1) return;
-        const price = getStoredPrice(priceKeyRune(eff.name));
+        const price      = getStoredPrice(priceKeyRune(eff.name));
         const runesFloat = (pdbs[eff.index] / eff.weightRuneNormal) * coeff;
-        const kamasGuaranteed = Math.floor(runesFloat) * price;
-        if (price <= 0) { missingPrices++; }
+        const kamas      = Math.floor(runesFloat) * price;
+        if (price <= 0) missingPrices++;
+
         runeLines.push({
-            abbr:       eff.abbr,
-            runesFloat: Math.round(runesFloat * 100) / 100,
+            abbr:        eff.abbr,
+            name:        eff.name,
+            runesFloat:  Math.round(runesFloat * 100) / 100,
             price,
-            kamas:      Math.round(kamasGuaranteed),
-        rentabilite: Math.round((price / (eff.weightRuneNormal || 1)) * 100) / 100,
-    name: eff.name,
-    });
+            kamas:       Math.round(kamas),
+            rentabilite: Math.round((price / (eff.weightRuneNormal || 1)) * 100) / 100,
+        });
     });
 
-    return { 
-        expectedBase: baseKamas.expected,
-        guaranteedBase: baseKamas.guaranteed,
-        runeLines, 
-        missingPrices, 
-        bestFocus 
-    };
+    return { expectedBase: baseKamas.expected, guaranteedBase: baseKamas.guaranteed, runeLines, missingPrices, bestFocus };
 }
 
 /* =============================================================================
@@ -339,6 +407,77 @@ function _updateSortIcons() {
         icon.textContent = isActive ? (SmashState.sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕';
         th.classList.toggle('smash-th-active', isActive);
     });
+}
+
+/* =============================================================================
+   RENTABILITÉ DES RUNES — PANNEAU
+============================================================================= */
+
+/**
+ * Génère le panneau de rentabilité des runes (K/poids).
+ * Un ratio élevé signifie que la rune rapporte beaucoup de kamas
+ * pour chaque unité de poids investie lors du brisage.
+ *
+ * @returns {string} HTML du panneau <details>.
+ */
+function _buildRuneRentabilitePanel() {
+    const fmt = n => n.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+
+    const runes = (dbRunesWeights || [])
+        .map(rw => {
+            const price       = getStoredPrice(priceKeyRune(rw.nom));
+            const poids       = parseFloat(rw.poids_rune_normal) || 1;
+            const rentabilite = price > 0 ? Math.round(price / poids) : 0;
+            return {
+                abbr: dbRuneNames[rw.nom] || rw.nom,
+                nom:  rw.nom,
+                price, poids, rentabilite,
+            };
+        })
+        .filter(r => r.price > 0)
+        .sort((a, b) => b.rentabilite - a.rentabilite);
+
+    if (!runes.length) {
+        return `<p class="smash-rent-no-prices">
+                    💡 Renseignez les prix de vos runes dans le calculateur pour voir leur rentabilité ici.
+                </p>`;
+    }
+
+    const activeRune  = SmashState.filterRune;
+    const maxRent     = runes[0].rentabilite || 1;
+    const filterBadge = activeRune
+        ? `<span class="smash-rent-filter-badge">🎯 ${dbRuneNames[activeRune] || activeRune}</span>`
+        : '';
+
+    const rows = runes.map((r, i) => {
+        const isActive = r.nom === activeRune;
+        const barPct   = Math.round((r.rentabilite / maxRent) * 100);
+        const medal    = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+
+        return `
+        <div class="smash-rent-row${isActive ? ' smash-rent-active' : ''}"
+             title="${r.abbr} · poids_rune = ${r.poids} · ${fmt(r.price)} K · ${fmt(r.rentabilite)} K/poids">
+            <span class="smash-rent-rank">${medal}</span>
+            <span class="smash-rent-abbr">${r.abbr}</span>
+            <div class="smash-rent-bar-wrap">
+                <div class="smash-rent-bar-track">
+                    <div class="smash-rent-bar" style="width:${barPct}%"></div>
+                </div>
+            </div>
+            <span class="smash-rent-price">${fmt(r.price)} K</span>
+            <span class="smash-rent-ratio">${fmt(r.rentabilite)}<span class="smash-rent-unit"> K/p</span></span>
+        </div>`;
+    }).join('');
+
+    return `
+        <details class="smash-rent-panel"${activeRune ? ' open' : ''}>
+            <summary class="smash-rent-summary">
+                <span class="smash-rent-summary-title">💎 Rentabilité des runes — ${runes.length} avec prix</span>
+                ${filterBadge}
+                <span class="smash-rent-summary-hint">K/poids = kamas par unité de poids investie</span>
+            </summary>
+            <div class="smash-rent-grid">${rows}</div>
+        </details>`;
 }
 
 /* =============================================================================
@@ -379,15 +518,27 @@ function _buildSmashTbody(results) {
         const missingBadge = r.missingPrices > 0
             ? `<span class="smash-missing">⚠️ ${r.missingPrices} rune(s) sans prix</span>` : '';
 
-        // Utiliser la meilleure stratégie de focus (même logique que le calculateur)
         const focusCell = r.bestFocus
-            ? `<span class="smash-focus-rune">🎯 ${r.bestFocus.abbr} <span class="smash-focus-detail">(${r.bestFocus.guaranteed.toLocaleString('fr-FR')} K garantis)</span></span>`
+            ? `<span class="smash-focus-rune">🎯 ${r.bestFocus.abbr}
+               <span class="smash-focus-detail">(${r.bestFocus.guaranteed.toLocaleString('fr-FR')} K garantis)</span></span>`
             : '<span class="smash-no-focus">Aucun focus</span>';
 
+        // Tooltip enrichi avec rentabilité par rune (triées par K/poids décroissant)
         const runeDetail = r.runeLines
             .filter(l => l.price > 0)
-            .map(l => `${l.abbr}: ~${l.runesFloat} · ${fmt(l.kamas)} K`)
-            .join(' | ');
+            .sort((a, b) => b.rentabilite - a.rentabilite)
+            .map(l => `${l.abbr}: ~${l.runesFloat} rune(s) · ${fmt(l.kamas)} K · ${fmt(l.rentabilite)} K/poids`)
+            .join('\n');
+
+        // Rune la plus rentable de cet item (pour badge)
+        const topRentRune = r.runeLines
+            .filter(l => l.price > 0)
+            .sort((a, b) => b.rentabilite - a.rentabilite)[0];
+
+        const rentBadge = topRentRune
+            ? `<span class="smash-best-rent-badge" title="Meilleure rune : ${topRentRune.abbr}">
+               💎 ${topRentRune.abbr} · ${fmt(topRentRune.rentabilite)} K/p</span>`
+            : '';
 
         return `
         <tr class="smash-row" data-item-id="${r.item.id_itm}"
@@ -400,6 +551,7 @@ function _buildSmashTbody(results) {
                         <span class="smash-item-name">${_escapeHtml(r.item.nom)}</span>
                         <span class="smash-item-level">Niv. ${r.item.niveau}</span>
                         ${missingBadge}
+                        ${rentBadge}
                     </div>
                 </div>
             </td>
@@ -427,8 +579,6 @@ function _attachSmashListeners(container) {
                 SmashState.sortDir = SmashState.sortDir === 'asc' ? 'desc' : 'asc';
             } else {
                 SmashState.sortKey = key;
-                // Seuil/brisages : asc par défaut (plus bas = meilleur)
-                // Autres : desc par défaut (plus haut = meilleur)
                 SmashState.sortDir = (key === 'threshold' || key === 'smashes') ? 'asc' : 'desc';
             }
             const tbody = container.querySelector('.smash-table tbody');
@@ -439,7 +589,7 @@ function _attachSmashListeners(container) {
             _updateSortIcons();
         });
     });
-    // Boutons Panier
+
     container.querySelectorAll('.smash-btn-cart').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -450,7 +600,6 @@ function _attachSmashListeners(container) {
         });
     });
 
-    // Boutons Cacher
     container.querySelectorAll('.smash-btn-hide').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -481,13 +630,18 @@ function _attachRowClickListeners(container) {
 
 function _renderSmashResults(results, coeffPct) {
     const container = document.getElementById('smash-scan-results');
+    const activeRune = SmashState.filterRune;
+    const filterLabel = activeRune
+        ? ` — rune : <strong>${dbRuneNames[activeRune] || activeRune}</strong>`
+        : '';
 
     if (!results.length) {
         container.innerHTML = `
             <div class="smash-empty">
-                Aucun équipement rentable trouvé au coefficient actuel (${coeffPct} %).<br>
+                Aucun équipement rentable trouvé au coefficient actuel (${coeffPct} %)${activeRune ? ` pour la rune ${dbRuneNames[activeRune] || activeRune}` : ''}.<br>
                 Vérifiez vos prix de runes ou augmentez le coefficient dans le calculateur.
-            </div>`;
+            </div>
+            ${_buildRuneRentabilitePanel()}`;
         return;
     }
 
@@ -498,24 +652,22 @@ function _renderSmashResults(results, coeffPct) {
     const headers = SMASH_COLUMNS.map(col => {
         if (!col.sortable) return `<th class="smash-th">${col.label}</th>`;
         const isActive = col.key === SmashState.sortKey;
-        const icon     = isActive
-            ? (SmashState.sortDir === 'asc' ? ' ↑' : ' ↓')
-            : ' ↕';
-        return `<th class="smash-th${isActive ? ' smash-th-active' : ''}"
-                    data-smash-sort="${col.key}">
+        const icon     = isActive ? (SmashState.sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕';
+        return `<th class="smash-th${isActive ? ' smash-th-active' : ''}" data-smash-sort="${col.key}">
                     ${col.label}<span class="smash-sort-icon">${icon}</span>
                 </th>`;
     }).join('');
 
     container.innerHTML = `
         <div class="smash-results-header">
-            <h4>💥 ${results.length} brisage(s) rentables — Coefficient ${coeffPct} %</h4>
+            <h4>💥 ${results.length} brisage(s) rentables — Coefficient ${coeffPct} %${filterLabel}</h4>
             <p class="smash-legend">
                 Classé par seuil de rentabilité croissant (plus bas = plus rentable) ·
                 Seuils de ${threshMin} % à ${threshMax} %
                 ${withProfit > 0 ? `· <strong>${withProfit}</strong> avec bénéfice net` : ''}
                 · <em>Cliquer une ligne pour ouvrir dans le calculateur</em>
             </p>
+            ${_buildRuneRentabilitePanel()}
         </div>
         <div class="smash-table-wrap">
             <table class="smash-table">
@@ -526,10 +678,9 @@ function _renderSmashResults(results, coeffPct) {
 
     _attachSmashListeners(container);
 
-    // Réinitialiser le bouton "Tout au panier"
     const cartAllBtn = document.getElementById('btn-smash-cart-all');
     if (cartAllBtn) {
-        cartAllBtn.disabled = false;
+        cartAllBtn.disabled    = false;
         cartAllBtn.textContent = '🛒 Tout au panier';
     }
 }
@@ -589,12 +740,10 @@ function _showHiddenSmashPanel() {
     });
 }
 
-/**
- * Échappe les caractères HTML dangereux dans une chaîne.
- * @param {string} str
- * @returns {string}
- * @private
- */
+/* =============================================================================
+   UTILITAIRES
+============================================================================= */
+
 function _escapeHtml(str) {
     return str
         .replace(/&/g, '&amp;')
@@ -603,12 +752,6 @@ function _escapeHtml(str) {
         .replace(/"/g, '&quot;');
 }
 
-/**
- * Échappe les caractères dangereux pour un attribut HTML.
- * @param {string} str
- * @returns {string}
- * @private
- */
 function _escapeAttr(str) {
     return str
         .replace(/&/g, '&amp;')

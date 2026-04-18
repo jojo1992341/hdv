@@ -2968,3 +2968,204 @@ select:focus {
   transition-duration: var(--duration-normal);
   transition-timing-function: var(--ease-out);
 }
+
+/* =============================================================================
+   SCANNER DE BRISAGE — FILTRE PAR RUNE
+============================================================================= */
+.smash-rune-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+.smash-rune-select {
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--brd-hi);
+  border-radius: var(--r-sm);
+  background: var(--bg-input);
+  color: var(--tx-bright);
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  max-width: 210px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.smash-rune-select:focus {
+  border-color: var(--azur-line);
+  box-shadow: 0 0 0 2px var(--azur-dim);
+}
+.smash-rune-select option     { color: var(--tx-bright); background: var(--bg-surface); }
+.smash-rune-select optgroup   { color: var(--tx-dim); font-size: 0.75rem; }
+ 
+/* =============================================================================
+   SCANNER DE BRISAGE — PANNEAU RENTABILITÉ DES RUNES
+============================================================================= */
+.smash-rent-panel {
+  margin-top: 0.85rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--brd-hi);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+ 
+.smash-rent-summary {
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  user-select: none;
+  transition: background 0.15s;
+}
+.smash-rent-summary::-webkit-details-marker { display: none; }
+.smash-rent-summary::marker                 { display: none; }
+.smash-rent-summary:hover { background: var(--bg-overlay); }
+ 
+.smash-rent-summary-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--tx-dim);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.smash-rent-summary-title::before {
+  content: '▶';
+  font-size: 0.6rem;
+  color: var(--tx-faint);
+  transition: transform 0.2s;
+}
+details[open] .smash-rent-summary-title::before {
+  transform: rotate(90deg);
+}
+ 
+.smash-rent-summary-hint {
+  font-size: 0.74rem;
+  color: var(--tx-faint);
+  font-style: italic;
+  margin-left: auto;
+}
+ 
+.smash-rent-filter-badge {
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: var(--azur-dim);
+  color: var(--azur-hi);
+  border: 1px solid var(--azur-line);
+  border-radius: var(--r-pill);
+  padding: 2px 9px;
+}
+ 
+.smash-rent-no-prices {
+  font-size: 0.82rem;
+  color: var(--tx-faint);
+  font-style: italic;
+  padding: 0.75rem 1rem;
+  margin: 0;
+}
+ 
+/* ── Grille des runes ── */
+.smash-rent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 2px;
+  padding: 0.5rem;
+  border-top: 1px solid var(--brd);
+}
+ 
+.smash-rent-row {
+  display: grid;
+  grid-template-columns: 28px 80px 1fr 72px 72px;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.32rem 0.6rem;
+  border-radius: var(--r-sm);
+  border: 1px solid transparent;
+  cursor: default;
+  transition: background 0.12s;
+}
+.smash-rent-row:hover { background: var(--bg-overlay); }
+ 
+.smash-rent-active {
+  background: var(--azur-dim) !important;
+  border-color: var(--azur-line) !important;
+}
+ 
+.smash-rent-rank {
+  font-size: 0.72rem;
+  color: var(--tx-faint);
+  font-family: var(--font-mono);
+  text-align: center;
+  white-space: nowrap;
+}
+ 
+.smash-rent-abbr {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--tx-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+ 
+/* Barre de progression relative */
+.smash-rent-bar-wrap  { min-width: 0; }
+.smash-rent-bar-track {
+  height: 5px;
+  background: var(--bg-input);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.smash-rent-bar {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--jade-dim), var(--jade));
+  transition: width 0.3s var(--ease-out);
+}
+.smash-rent-active .smash-rent-bar {
+  background: linear-gradient(90deg, var(--azur-dim), var(--azur));
+}
+ 
+.smash-rent-price {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--amber);
+  text-align: right;
+  white-space: nowrap;
+}
+ 
+.smash-rent-ratio {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--jade-hi);
+  text-align: right;
+  white-space: nowrap;
+}
+.smash-rent-unit {
+  font-weight: 400;
+  font-size: 0.66rem;
+  color: var(--tx-faint);
+}
+ 
+/* =============================================================================
+   SCANNER DE BRISAGE — BADGE MEILLEURE RUNE PAR ITEM
+============================================================================= */
+.smash-best-rent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--jade-hi);
+  background: var(--jade-dim);
+  border: 1px solid var(--jade-line);
+  border-radius: var(--r-pill);
+  padding: 1px 6px;
+  margin-top: 2px;
+}
