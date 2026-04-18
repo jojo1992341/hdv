@@ -2970,7 +2970,7 @@ select:focus {
 }
 
 /* =============================================================================
-   SCANNER DE BRISAGE — FILTRE PAR RUNE
+   SCANNER — FILTRE PAR RUNE (SELECT)
 ============================================================================= */
 .smash-rune-filter {
   display: flex;
@@ -2996,11 +2996,81 @@ select:focus {
   border-color: var(--azur-line);
   box-shadow: 0 0 0 2px var(--azur-dim);
 }
-.smash-rune-select option     { color: var(--tx-bright); background: var(--bg-surface); }
-.smash-rune-select optgroup   { color: var(--tx-dim); font-size: 0.75rem; }
+/* Quand une rune est sélectionnée : couleur accent pour signaler le mode forcé */
+.smash-rune-select.has-selection {
+  border-color: var(--jade-line);
+  background: var(--jade-dim);
+  color: var(--jade-hi);
+  font-weight: 700;
+}
  
 /* =============================================================================
-   SCANNER DE BRISAGE — PANNEAU RENTABILITÉ DES RUNES
+   SCANNER — BANNIÈRE FOCUS FORCÉ
+============================================================================= */
+.smash-force-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 0.6rem 0 0.2rem;
+  padding: 0.6rem 1rem;
+  background: var(--jade-dim);
+  border: 1px solid var(--jade-line);
+  border-left: 3px solid var(--jade);
+  border-radius: var(--r-sm);
+  font-size: 0.84rem;
+  color: var(--jade-hi);
+  font-weight: 500;
+}
+.smash-force-banner strong { color: var(--jade-hi); font-weight: 700; }
+.smash-force-banner-sub {
+  font-size: 0.75rem;
+  color: var(--tx-dim);
+  font-style: italic;
+  margin-left: auto;
+}
+ 
+/* =============================================================================
+   SCANNER — COLONNE GAIN AVEC DOUBLE VALEUR
+============================================================================= */
+.smash-gain-cell { white-space: nowrap; }
+.smash-gain-effective {
+  display: block;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--jade-hi);
+  font-size: 0.9rem;
+}
+.smash-gain-sub {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--tx-dim);
+  margin-top: 1px;
+}
+ 
+/* =============================================================================
+   SCANNER — COLONNE "RUNE À FOCUS" : FOCUS FORCÉ
+============================================================================= */
+.smash-focus-forced {
+  color: var(--jade-hi) !important;
+}
+.smash-focus-forced-tag {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: var(--jade);
+  color: var(--bg);
+  border-radius: var(--r-pill);
+  padding: 1px 5px;
+  margin-left: 3px;
+  vertical-align: middle;
+}
+ 
+/* =============================================================================
+   SCANNER — PANNEAU RENTABILITÉ DES RUNES
 ============================================================================= */
 .smash-rent-panel {
   margin-top: 0.85rem;
@@ -3021,8 +3091,8 @@ select:focus {
   user-select: none;
   transition: background 0.15s;
 }
-.smash-rent-summary::-webkit-details-marker { display: none; }
-.smash-rent-summary::marker                 { display: none; }
+.smash-rent-summary::-webkit-details-marker,
+.smash-rent-summary::marker { display: none; }
 .smash-rent-summary:hover { background: var(--bg-overlay); }
  
 .smash-rent-summary-title {
@@ -3039,9 +3109,7 @@ select:focus {
   color: var(--tx-faint);
   transition: transform 0.2s;
 }
-details[open] .smash-rent-summary-title::before {
-  transform: rotate(90deg);
-}
+details[open] .smash-rent-summary-title::before { transform: rotate(90deg); }
  
 .smash-rent-summary-hint {
   font-size: 0.74rem;
@@ -3053,9 +3121,9 @@ details[open] .smash-rent-summary-title::before {
 .smash-rent-filter-badge {
   font-size: 0.74rem;
   font-weight: 700;
-  background: var(--azur-dim);
-  color: var(--azur-hi);
-  border: 1px solid var(--azur-line);
+  background: var(--jade-dim);
+  color: var(--jade-hi);
+  border: 1px solid var(--jade-line);
   border-radius: var(--r-pill);
   padding: 2px 9px;
 }
@@ -3085,14 +3153,12 @@ details[open] .smash-rent-summary-title::before {
   padding: 0.32rem 0.6rem;
   border-radius: var(--r-sm);
   border: 1px solid transparent;
-  cursor: default;
   transition: background 0.12s;
 }
 .smash-rent-row:hover { background: var(--bg-overlay); }
- 
 .smash-rent-active {
-  background: var(--azur-dim) !important;
-  border-color: var(--azur-line) !important;
+  background: var(--jade-dim) !important;
+  border-color: var(--jade-line) !important;
 }
  
 .smash-rent-rank {
@@ -3102,7 +3168,6 @@ details[open] .smash-rent-summary-title::before {
   text-align: center;
   white-space: nowrap;
 }
- 
 .smash-rent-abbr {
   font-size: 0.82rem;
   font-weight: 600;
@@ -3111,8 +3176,8 @@ details[open] .smash-rent-summary-title::before {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.smash-rent-active .smash-rent-abbr { color: var(--jade-hi); }
  
-/* Barre de progression relative */
 .smash-rent-bar-wrap  { min-width: 0; }
 .smash-rent-bar-track {
   height: 5px;
@@ -3127,7 +3192,7 @@ details[open] .smash-rent-summary-title::before {
   transition: width 0.3s var(--ease-out);
 }
 .smash-rent-active .smash-rent-bar {
-  background: linear-gradient(90deg, var(--azur-dim), var(--azur));
+  background: linear-gradient(90deg, var(--jade-line), var(--jade-hi));
 }
  
 .smash-rent-price {
@@ -3137,7 +3202,6 @@ details[open] .smash-rent-summary-title::before {
   text-align: right;
   white-space: nowrap;
 }
- 
 .smash-rent-ratio {
   font-family: var(--font-mono);
   font-size: 0.78rem;
@@ -3153,7 +3217,7 @@ details[open] .smash-rent-summary-title::before {
 }
  
 /* =============================================================================
-   SCANNER DE BRISAGE — BADGE MEILLEURE RUNE PAR ITEM
+   SCANNER — BADGE MEILLEURE RUNE PAR ITEM
 ============================================================================= */
 .smash-best-rent-badge {
   display: inline-flex;
