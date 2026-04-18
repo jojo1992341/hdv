@@ -37,7 +37,23 @@ const CalculatorState = {
      * @type {Object.<number, number>}
      */
     itemJets: {},
+
+    /**
+     * Rune de focus imposée depuis le scanner de brisage (null = focus auto).
+     * @type {string|null}
+     */
+    forcedFocusRune: null,
 };
+
+/**
+ * Définit (ou efface) la rune de focus imposée par le scanner de brisage.
+ * Appelée depuis brisageScanner.js avant la navigation vers le calculateur.
+ *
+ * @param {string|null} runeName - Nom interne de la rune (ex: "Force"), ou null.
+ */
+function setForcedFocusRune(runeName) {
+    CalculatorState.forcedFocusRune = runeName || null;
+}
 
 /* =============================================================================
    TIER HELPERS
@@ -158,6 +174,7 @@ function setupSearch() {
             div.className = 'dropdown-item';
             div.innerHTML = `<img src="${getIcon(item.icone)}" alt=""> <span>${item.nom}</span>`;
             div.onclick = () => {
+                CalculatorState.forcedFocusRune = null;
                 selectItem(item);
                 searchResults.classList.add('hidden');
                 searchInput.value = '';
@@ -579,6 +596,10 @@ function renderRunesTable() {
             `;
         }
 
+        if (eff.name === CalculatorState.forcedFocusRune) {
+            tr.classList.add('rune-row-forced');
+        }
+
         tbody.appendChild(tr);
     });
 
@@ -649,12 +670,18 @@ function updateCalculations() {
 
     document.getElementById('total-base-kamas').textContent = `${Math.round(baseKamas.expected)} K`;
 
-    const allStrategies = [
-        { type: 'none', name: 'Aucun focus', ...baseKamas },
-        ...focusStrategies,
-    ].sort((a, b) => b.guaranteed - a.guaranteed || b.expected - a.expected);
-
-    const best = allStrategies[0];
+    let best;
+    const forcedRune = CalculatorState.forcedFocusRune;
+    if (forcedRune) {
+        const forcedStrategy = focusStrategies.find(s => s.runeName === forcedRune);
+        best = forcedStrategy ?? { type: 'none', name: 'Aucun focus', ...baseKamas };
+    } else {
+        const allStrategies = [
+            { type: 'none', name: 'Aucun focus', ...baseKamas },
+            ...focusStrategies,
+        ].sort((a, b) => b.guaranteed - a.guaranteed || b.expected - a.expected);
+        best = allStrategies[0];
+    }
     document.getElementById('estimated-gain').textContent = `${Math.round(best.expected)} K`;
 
     _renderProfitThreshold(best, totalRecipePrice, currentPercent, coeff);
@@ -710,6 +737,7 @@ function _calcStrategies(pdbs, totalPdb, coeff) {
         focusStrategies.push({
             type:         'focus',
             name:         eff.abbr,
+            runeName:     eff.name,   // nom interne pour correspondre à forcedFocusRune
             guaranteed:   Math.floor(focusRunesFloat) * price,
             expected:     focusRunesFloat * price,
             maxPotential: Math.ceil(focusRunesFloat)  * price,
@@ -784,9 +812,12 @@ function displayBestStrategy(bestStrategy, totalRecipePrice) {
         return;
     }
 
+    const forcedTag = CalculatorState.forcedFocusRune && bestStrategy.type !== 'none'
+        ? ` <span class="smash-focus-forced-tag" title="Focus imposé depuis le scanner de brisage">FORCÉ</span>`
+        : '';
     const strategyLabel = bestStrategy.type === 'none'
         ? '<strong>ne faire aucun focus</strong>'
-        : `Focus les runes <strong>${bestStrategy.name}</strong>`;
+        : `Focus les runes <strong>${bestStrategy.name}</strong>${forcedTag}`;
 
     const colorClass = bestStrategy.expected >= totalRecipePrice ? 'success-text' : 'danger-text';
     const pctGain    = totalRecipePrice > 0

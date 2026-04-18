@@ -3233,3 +3233,20 @@ details[open] .smash-rent-summary-title::before { transform: rotate(90deg); }
   padding: 1px 6px;
   margin-top: 2px;
 }
+
+/* =============================================================================
+   CALCULATEUR — RUNE DE FOCUS FORCÉE (depuis scanner de brisage)
+============================================================================= */
+
+.rune-row-forced {
+    background: var(--jade-dim) !important;
+    outline: 2px solid var(--jade-line);
+    outline-offset: -2px;
+}
+.rune-row-forced td {
+    color: var(--jade-hi);
+}
+.rune-row-forced .rune-name-text {
+    font-weight: 700;
+    color: var(--jade-hi) !important;
+}

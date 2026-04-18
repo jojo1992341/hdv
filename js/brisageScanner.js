@@ -690,6 +690,10 @@ function _attachRowClickListeners(container) {
             const itemId = parseInt(row.dataset.itemId, 10);
             const item   = dbEquipments.find(e => e.id_itm === itemId);
             if (!item) return;
+            // Transmet la rune cible sélectionnée dans le scanner au calculateur
+            if (typeof setForcedFocusRune === 'function') {
+                setForcedFocusRune(SmashState.filterRune || null);
+            }
             const navBtn = document.querySelector('[data-target="tab-calculator"]');
             if (navBtn) navBtn.click();
             document.getElementById('search-input').value = item.nom;
